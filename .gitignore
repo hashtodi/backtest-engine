@@ -19,6 +19,9 @@ data/
 .DS_Store
 Thumbs.db
 
+# Backtest output files
+output/
+
 # Secrets
 .env
 .env.local

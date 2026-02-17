@@ -1,0 +1,37 @@
+{
+  "name": "Test",
+  "description": "Custom strategy from UI",
+  "indicators": [
+    {
+      "type": "RSI",
+      "name": "rsi_14",
+      "period": 14
+    }
+  ],
+  "signal_conditions": [
+    {
+      "indicator": "rsi_14",
+      "compare": "crosses_above",
+      "value": 70.0
+    }
+  ],
+  "signal_logic": "AND",
+  "direction": "sell",
+  "entry_levels": [
+    {
+      "pct_above_base": 0,
+      "capital_pct": 100.0
+    }
+  ],
+  "stop_loss_pct": 9999,
+  "target_pct": 10.0,
+  "trading_start": "09:30",
+  "trading_end": "14:30",
+  "max_trades_per_day": 1,
+  "instruments": [
+    "NIFTY"
+  ],
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2025-07-01",
+  "initial_capital": 200000
+}

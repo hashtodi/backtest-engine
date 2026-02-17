@@ -1,0 +1,37 @@
+{
+  "name": "ema 20 - 1 month",
+  "description": "Custom strategy from UI",
+  "indicators": [
+    {
+      "type": "EMA",
+      "name": "ema_20",
+      "period": 20
+    }
+  ],
+  "signal_conditions": [
+    {
+      "indicator": "ema_20",
+      "compare": "crosses_above",
+      "value": 20.0
+    }
+  ],
+  "signal_logic": "AND",
+  "direction": "buy",
+  "entry_levels": [
+    {
+      "pct_above_base": 0,
+      "capital_pct": 100.0
+    }
+  ],
+  "stop_loss_pct": 9999,
+  "target_pct": 10.0,
+  "trading_start": "09:30",
+  "trading_end": "14:30",
+  "max_trades_per_day": null,
+  "instruments": [
+    "SENSEX"
+  ],
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2025-03-31",
+  "initial_capital": 200000
+}

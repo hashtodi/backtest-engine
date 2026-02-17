@@ -1,0 +1,46 @@
+{
+  "name": "RSI 70 Sell",
+  "description": "Sell ATM option when RSI(14) crosses above 70. Staggered entry at +5/10/15% from base. SL 20%, TP 10%. Nearest weekly expiry.",
+  "indicators": [
+    {
+      "type": "RSI",
+      "name": "rsi_14",
+      "period": 14
+    }
+  ],
+  "signal_conditions": [
+    {
+      "indicator": "rsi_14",
+      "compare": "crosses_above",
+      "value": 70.0
+    }
+  ],
+  "signal_logic": "AND",
+  "direction": "sell",
+  "entry_levels": [
+    {
+      "pct_above_base": 5.0,
+      "capital_pct": 33.33
+    },
+    {
+      "pct_above_base": 10.0,
+      "capital_pct": 33.33
+    },
+    {
+      "pct_above_base": 15.0,
+      "capital_pct": 33.34
+    }
+  ],
+  "stop_loss_pct": 20.0,
+  "target_pct": 10.0,
+  "trading_start": "09:30",
+  "trading_end": "14:30",
+  "max_trades_per_day": null,
+  "instruments": [
+    "NIFTY",
+    "SENSEX"
+  ],
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2025-12-31",
+  "initial_capital": 700000
+}

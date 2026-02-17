@@ -1,55 +1,29 @@
 """
-Configuration for RSI Options Trading Strategy
+Global configuration.
 
-Used by:
-  - backtest_engine.py (backtesting)
-  - trading_bot_runner.py (live trading)
+Contains only global defaults shared across all strategies:
+  - Data paths (parquet files)
+  - Lot sizes per instrument
+  - Live trading settings (API, Telegram)
+
+Strategy-specific parameters (indicators, SL/TP, entry levels, etc.)
+are defined in strategies/*.py files.
 """
 
 import os
 
 # ============================================
-# DHAN API CREDENTIALS
+# DHAN API CREDENTIALS (live trading)
 # ============================================
 CLIENT_ID = os.getenv("CLIENT_ID")
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
 
 
 # ============================================
-# STRATEGY PARAMETERS
+# LOT SIZES PER INSTRUMENT
 # ============================================
-STRATEGY_CONFIG = {
-    'rsi_length': 14,       # RSI period (calculated on option price)
-    'stop_loss_pct': 20,    # SL: exit if price rises 20% above avg entry
-    'target_pct': 10,       # TP: exit if price drops 10% below avg entry
-}
-
-
-# ============================================
-# STAGGERED ENTRY LEVELS
-# ============================================
-# After RSI crosses 70, sell in 3 parts as price rises:
-#   Part 1 (33.33%): base_price + 5%
-#   Part 2 (33.33%): base_price + 10%
-#   Part 3 (33.34%): base_price + 15%
-ENTRY_LEVEL_1_PCT = 5
-ENTRY_LEVEL_2_PCT = 10
-ENTRY_LEVEL_3_PCT = 15
-
-
-# ============================================
-# TRADING HOURS (IST)
-# ============================================
-TRADING_START_TIME = "09:30"   # Signal detection starts (9:30 to allow RSI warmup)
-TRADING_END_TIME = "14:30"     # Force exit all positions (2:30 PM)
-
-
-# ============================================
-# POSITION SIZING
-# ============================================
-CAPITAL_PER_POSITION = 200000  # Rs 2,00,000 per lot
-
-# Lot sizes per instrument (number of units per lot)
+# Number of units per lot for each instrument.
+# Used for money P&L calculation: option_pnl * lot_size = money_pnl
 LOT_SIZE = {
     'NIFTY': 75,
     'BANKNIFTY': 30,
@@ -60,31 +34,26 @@ LOT_SIZE = {
 
 
 # ============================================
-# INSTRUMENTS
+# DATA PATHS (parquet files with 1-min options OHLC)
+# ============================================
+DATA_PATH = {
+    'NIFTY': 'data/options/nifty/NIFTY_OPTIONS_1m.parquet',
+    'SENSEX': 'data/options/sensex/SENSEX_OPTIONS_1m.parquet',
+}
+
+
+# ============================================
+# INSTRUMENTS LIST
 # ============================================
 INSTRUMENTS = ['NIFTY', 'BANKNIFTY', 'RELIANCE', 'HDFCBANK', 'SENSEX']
 
-# Strike rounding per instrument
+# Strike rounding per instrument (for live trading ATM calculation)
 STRIKE_ROUNDING = {
     'NIFTY': 50,
     'BANKNIFTY': 100,
     'SENSEX': 100,
     'RELIANCE': 5,
     'HDFCBANK': 10,
-}
-
-
-# ============================================
-# BACKTEST SETTINGS
-# ============================================
-BACKTEST_START_DATE = "2025-01-01"
-BACKTEST_END_DATE = "2025-12-31"
-BACKTEST_INITIAL_CAPITAL = 200000  # Rs 2,00,000
-
-# Data paths (parquet files with 1-min options OHLC)
-BACKTEST_DATA_PATH = {
-    'NIFTY': 'data/options/nifty/NIFTY_OPTIONS_1m.parquet',
-    'SENSEX': 'data/options/sensex/SENSEX_OPTIONS_1m.parquet',
 }
 
 
