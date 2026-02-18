@@ -15,7 +15,7 @@ import config
 from engine.data_loader import load_data, calculate_indicators
 from engine.backtest import BacktestEngine
 from engine import reporter
-from ui.form_config import INDICATOR_PARAMS, NEEDS_VALUE, NEEDS_OTHER, auto_name
+from ui.form_config import INDICATOR_PARAMS, NEEDS_VALUE, NEEDS_OTHER, auto_name, get_available_columns
 from ui.strategy_store import save_strategy, get_output_dir, list_saved_strategies, load_saved_strategy
 from ui.strategy_form import (
     init_state,
@@ -234,11 +234,40 @@ def _display_results(report: dict, instrument: str):
 # ============================================
 # LOAD SAVED STRATEGY INTO FORM
 # ============================================
+
+def _clear_dynamic_widget_keys():
+    """
+    Remove stale widget keys for dynamic form items.
+
+    When loading a saved strategy, old widget keys (from the previous form render)
+    linger in session state. Streamlit uses those stale values instead of the new
+    index/value params, causing loaded strategies to show default data.
+    """
+    stale_prefixes = (
+        "ind_type_", "ind_ind_",                                # indicator widgets
+        "cond_ind_", "cond_cmp_", "cond_val_", "cond_other_",  # condition widgets
+        "lvl_pct_", "lvl_cap_",                                 # entry level widgets
+        "rm_ind_", "rm_cond_", "rm_lvl_",                       # remove buttons
+    )
+    for k in list(st.session_state.keys()):
+        if any(k.startswith(p) for p in stale_prefixes):
+            del st.session_state[k]
+
+
 def _load_strategy_into_form(slug: str):
-    """Populate form session state from a saved strategy JSON."""
+    """
+    Populate form session state from a saved strategy JSON.
+
+    Sets both the data structures (bt_indicators, bt_conditions, etc.)
+    AND the individual widget keys (ind_type_*, cond_ind_*, etc.)
+    so Streamlit selectboxes/inputs reflect the loaded values.
+    """
     strategy = load_saved_strategy(slug)
     if not strategy:
         return
+
+    # Clear stale widget keys from previous form render
+    _clear_dynamic_widget_keys()
 
     # Identity
     st.session_state.bt_name = strategy.get("name", "")
@@ -247,7 +276,7 @@ def _load_strategy_into_form(slug: str):
     # Direction
     st.session_state.bt_direction = strategy.get("direction", "sell")
 
-    # Indicators
+    # --- Indicators ---
     indicators = []
     for cfg in strategy.get("indicators", []):
         ind = {"id": f"ind_{len(indicators)}", "type": cfg["type"]}
@@ -259,7 +288,21 @@ def _load_strategy_into_form(slug: str):
         {"id": "ind_0", "type": "RSI", "period": 14}
     ]
 
-    # Signal conditions
+    # Set widget keys for each indicator (type selectbox + param inputs)
+    for ind in st.session_state.bt_indicators:
+        uid = ind["id"]
+        st.session_state[f"ind_type_{uid}"] = ind["type"]
+        for p in INDICATOR_PARAMS[ind["type"]]:
+            if p["key"] in ind:
+                # Cast to correct type (int/float) so Streamlit widgets don't complain
+                st.session_state[f"ind_{uid}_{p['key']}"] = p["type"](ind[p["key"]])
+
+    # Update counter so _next_id("ind") won't collide with loaded IDs
+    st.session_state["_counter_ind"] = len(st.session_state.bt_indicators)
+
+    # --- Signal conditions ---
+    available = get_available_columns(st.session_state.bt_indicators)
+
     conditions = []
     for sc in strategy.get("signal_conditions", []):
         cond = {
@@ -276,10 +319,28 @@ def _load_strategy_into_form(slug: str):
         {"id": "cond_0", "compare": "crosses_above", "value": 70.0}
     ]
 
+    # Set widget keys for each condition (indicator, compare, value/other)
+    for cond in st.session_state.bt_conditions:
+        uid = cond["id"]
+        # Indicator selectbox — only set if the value is valid
+        if cond.get("indicator_col") and cond["indicator_col"] in available:
+            st.session_state[f"cond_ind_{uid}"] = cond["indicator_col"]
+        # Compare selectbox
+        st.session_state[f"cond_cmp_{uid}"] = cond["compare"]
+        # Threshold value (for crosses_above, crosses_below, above, below)
+        if "value" in cond:
+            st.session_state[f"cond_val_{uid}"] = float(cond["value"])
+        # Other indicator (for crosses_above_indicator, crosses_below_indicator)
+        if cond.get("other") and cond["other"] in available:
+            st.session_state[f"cond_other_{uid}"] = cond["other"]
+
+    # Update counter so _next_id("cond") won't collide
+    st.session_state["_counter_cond"] = len(st.session_state.bt_conditions)
+
     # Signal logic
     st.session_state.bt_logic = strategy.get("signal_logic", "AND")
 
-    # Entry levels
+    # --- Entry levels ---
     levels = strategy.get("entry_levels", [])
     if len(levels) == 1 and levels[0].get("pct_above_base", 0) == 0:
         st.session_state.bt_entry_type = "Direct"
@@ -289,8 +350,16 @@ def _load_strategy_into_form(slug: str):
             {"id": f"lvl_{i}", "pct": lvl["pct_above_base"], "capital_pct": lvl["capital_pct"]}
             for i, lvl in enumerate(levels)
         ]
+        # Set widget keys for each entry level
+        for lvl in st.session_state.bt_entry_levels:
+            uid = lvl["id"]
+            st.session_state[f"lvl_pct_{uid}"] = float(lvl["pct"])
+            st.session_state[f"lvl_cap_{uid}"] = float(lvl["capital_pct"])
 
-    # Risk
+        # Update counter so _next_id("lvl") won't collide
+        st.session_state["_counter_lvl"] = len(st.session_state.bt_entry_levels)
+
+    # --- Risk ---
     sl = strategy.get("stop_loss_pct", 20)
     tp = strategy.get("target_pct", 10)
     st.session_state.bt_sl_on = sl < 9999
@@ -300,7 +369,7 @@ def _load_strategy_into_form(slug: str):
     if tp < 9999:
         st.session_state.bt_tp_pct = float(tp)
 
-    # Session
+    # --- Session ---
     from datetime import datetime
     ts = strategy.get("trading_start", "09:30")
     te = strategy.get("trading_end", "14:30")

@@ -133,10 +133,14 @@ def render_indicators():
             c_type, c_params, c_rm = st.columns([2, 5, 0.5])
 
             with c_type:
+                # Ensure widget key exists (no index= to avoid Session State conflict)
+                wk = f"ind_type_{uid}"
+                if wk not in st.session_state:
+                    st.session_state[wk] = ind.get("type", "RSI")
+
                 new_type = st.selectbox(
                     "Type", list(INDICATOR_PARAMS.keys()),
-                    index=list(INDICATOR_PARAMS.keys()).index(ind.get("type", "RSI")),
-                    key=f"ind_type_{uid}",
+                    key=wk,
                 )
                 # When type changes: clear ALL old param keys, set new defaults
                 if new_type != ind.get("type"):
@@ -156,17 +160,20 @@ def render_indicators():
                     pcols = st.columns(len(params))
                     for j, p in enumerate(params):
                         with pcols[j]:
+                            # Ensure widget key exists (no value= to avoid Session State conflict)
+                            wk = f"ind_{uid}_{p['key']}"
+                            if wk not in st.session_state:
+                                st.session_state[wk] = p["type"](ind.get(p["key"], p["default"]))
+
                             if p["type"] == int:
                                 indicators[i][p["key"]] = st.number_input(
                                     p["label"], p["min"], p["max"],
-                                    value=int(ind.get(p["key"], p["default"])),
-                                    key=f"ind_{uid}_{p['key']}",
+                                    key=wk,
                                 )
                             else:
                                 indicators[i][p["key"]] = st.number_input(
                                     p["label"], float(p["min"]), float(p["max"]),
-                                    value=float(ind.get(p["key"], p["default"])),
-                                    step=0.1, key=f"ind_{uid}_{p['key']}",
+                                    step=0.1, key=wk,
                                 )
                 else:
                     st.caption("No parameters needed")
@@ -219,24 +226,46 @@ def render_conditions():
             c1, c2, c3, c4 = st.columns([2, 2, 2, 0.5])
 
             with c1:
+                # Ensure widget key exists with saved/default indicator
+                wk = f"cond_ind_{uid}"
+                if wk not in st.session_state:
+                    default_ind = cond.get("indicator_col", available[0] if available else "")
+                    if default_ind in available:
+                        st.session_state[wk] = default_ind
+
                 conditions[i]["indicator_col"] = st.selectbox(
-                    "Indicator", available, key=f"cond_ind_{uid}",
+                    "Indicator", available, key=wk,
                 )
             with c2:
-                cmp_idx = COMPARE_TYPES.index(cond.get("compare", "crosses_above"))
+                # Ensure widget key exists (no index= to avoid Session State conflict)
+                wk = f"cond_cmp_{uid}"
+                if wk not in st.session_state:
+                    st.session_state[wk] = cond.get("compare", "crosses_above")
+
                 conditions[i]["compare"] = st.selectbox(
-                    "Compare", COMPARE_TYPES, index=cmp_idx, key=f"cond_cmp_{uid}",
+                    "Compare", COMPARE_TYPES, key=wk,
                 )
             with c3:
                 compare = conditions[i]["compare"]
                 if compare in NEEDS_VALUE:
+                    # Ensure widget key exists (no value= to avoid Session State conflict)
+                    wk = f"cond_val_{uid}"
+                    if wk not in st.session_state:
+                        st.session_state[wk] = float(cond.get("value", 70.0))
+
                     conditions[i]["value"] = st.number_input(
-                        "Threshold", value=float(cond.get("value", 70.0)),
-                        step=1.0, format="%.2f", key=f"cond_val_{uid}",
+                        "Threshold", step=1.0, format="%.2f", key=wk,
                     )
                 elif compare in NEEDS_OTHER:
+                    # Ensure widget key exists with saved/default other indicator
+                    wk = f"cond_other_{uid}"
+                    if wk not in st.session_state:
+                        default_other = cond.get("other", available[0] if available else "")
+                        if default_other in available:
+                            st.session_state[wk] = default_other
+
                     conditions[i]["other"] = st.selectbox(
-                        "Other Indicator", available, key=f"cond_other_{uid}",
+                        "Other Indicator", available, key=wk,
                     )
                 else:
                     st.caption("Compares to close price")
@@ -274,15 +303,24 @@ def render_entry():
             uid = lvl["id"]
             c_pct, c_cap, c_rm = st.columns([2, 2, 0.5])
             with c_pct:
+                # Ensure widget key exists (no value= to avoid Session State conflict)
+                wk = f"lvl_pct_{uid}"
+                if wk not in st.session_state:
+                    st.session_state[wk] = float(lvl.get("pct", 5.0))
+
                 levels[i]["pct"] = st.number_input(
                     f"Level {i + 1} (% from base)", 0.0, 100.0,
-                    value=float(lvl.get("pct", 5.0)), step=1.0, key=f"lvl_pct_{uid}",
+                    step=1.0, key=wk,
                 )
             with c_cap:
+                # Ensure widget key exists (no value= to avoid Session State conflict)
+                wk = f"lvl_cap_{uid}"
+                if wk not in st.session_state:
+                    st.session_state[wk] = float(lvl.get("capital_pct", 33.33))
+
                 levels[i]["capital_pct"] = st.number_input(
                     f"Level {i + 1} Capital %", 0.0, 100.0,
-                    value=float(lvl.get("capital_pct", 33.33)),
-                    step=1.0, key=f"lvl_cap_{uid}",
+                    step=1.0, key=wk,
                 )
             with c_rm:
                 if len(levels) > 1:
