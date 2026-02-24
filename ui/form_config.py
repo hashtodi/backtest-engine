@@ -37,6 +37,10 @@ INDICATOR_PARAMS = {
         {"key": "std_dev", "label": "Std Dev", "type": float, "default": 2.0, "min": 0.5, "max": 5.0},
     ],
     "VWAP": [],
+    "SUPERTREND": [
+        {"key": "factor", "label": "Factor", "type": int, "default": 4, "min": 1, "max": 20},
+        {"key": "atr_period", "label": "ATR Period", "type": int, "default": 11, "min": 2, "max": 200},
+    ],
 }
 
 # Multi-output indicators produce name_subkey columns.
@@ -44,6 +48,7 @@ INDICATOR_PARAMS = {
 MULTI_OUTPUT = {
     "MACD": ["macd", "signal", "histogram"],
     "BOLLINGER": ["upper", "middle", "lower"],
+    "SUPERTREND": ["value", "direction"],
 }
 
 # ============================================
@@ -55,6 +60,8 @@ COMPARE_TYPES = [
     "crosses_below",
     "above",
     "below",
+    "price_above",
+    "price_below",
     "price_crosses_above",
     "price_crosses_below",
     "crosses_above_indicator",
@@ -67,25 +74,45 @@ NEEDS_VALUE = {"crosses_above", "crosses_below", "above", "below"}
 # Comparisons that require another indicator column name.
 NEEDS_OTHER = {"crosses_above_indicator", "crosses_below_indicator"}
 
+# ============================================
+# PRICE SOURCE OPTIONS
+# ============================================
+
+# "spot"   = calculate on underlying/spot price (shared across all contracts, no expiry reset)
+# "option" = calculate on option close price (per contract, resets on new expiry)
+PRICE_SOURCES = ["spot", "option"]
+
 
 # ============================================
 # HELPERS
 # ============================================
 
 def auto_name(ind: dict) -> str:
-    """Generate a readable column name from an indicator config."""
+    """
+    Generate a readable column name from an indicator config.
+
+    Prefix based on price source:
+      spot_  = indicator on underlying price (e.g., spot_rsi_14)
+      opt_   = indicator on option close price (e.g., opt_rsi_14)
+    """
     t = ind["type"]
+    # Prefix: "spot_" or "opt_" based on price source
+    ps = ind.get("price_source", "option")
+    prefix = "spot" if ps == "spot" else "opt"
+
     if t == "MACD":
-        return f"macd_{ind.get('fast', 12)}_{ind.get('slow', 26)}_{ind.get('signal', 9)}"
+        return f"{prefix}_macd_{ind.get('fast', 12)}_{ind.get('slow', 26)}_{ind.get('signal', 9)}"
     if t == "BOLLINGER":
         std = ind.get('std_dev', 2.0)
         # Format std_dev cleanly: 2.0 → "2", 2.5 → "2.5"
         std_str = f"{std:g}"
-        return f"bb_{ind.get('period', 20)}_{std_str}"
+        return f"{prefix}_bb_{ind.get('period', 20)}_{std_str}"
+    if t == "SUPERTREND":
+        return f"{prefix}_st_{ind.get('factor', 4)}_{ind.get('atr_period', 11)}"
     if t == "VWAP":
-        return "vwap"
-    # RSI, EMA, SMA: type_period
-    return f"{t.lower()}_{ind.get('period', '')}"
+        return f"{prefix}_vwap"
+    # RSI, EMA, SMA: prefix_type_period
+    return f"{prefix}_{t.lower()}_{ind.get('period', '')}"
 
 
 def get_available_columns(indicators: list) -> List[str]:

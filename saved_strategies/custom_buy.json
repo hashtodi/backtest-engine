@@ -1,0 +1,26 @@
+{
+  "name": "Custom Buy",
+  "description": "Custom strategy from UI",
+  "indicators": [],
+  "signal_conditions": [],
+  "signal_logic": "AND",
+  "direction": "buy",
+  "entry_levels": [
+    {
+      "pct_above_base": 0,
+      "capital_pct": 100.0
+    }
+  ],
+  "stop_loss_pct": 15.0,
+  "target_pct": 10.0,
+  "trading_start": "09:30",
+  "trading_end": "15:15",
+  "max_trades_per_day": null,
+  "instruments": [
+    "NIFTY",
+    "SENSEX"
+  ],
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2025-12-31",
+  "initial_capital": 200000
+}

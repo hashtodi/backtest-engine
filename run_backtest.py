@@ -1,18 +1,20 @@
 """
-Backtest entry point.
+Backtest entry point (CLI).
 
 Usage:
-    python run_backtest.py                          # runs default strategy (RSI 70 Sell)
-    python run_backtest.py --strategy rsi_70_sell    # specify strategy by name
+    python run_backtest.py --strategy rsi_ema_cross
+    python run_backtest.py --strategy rsi_ema_cross --instrument NIFTY
+    python run_backtest.py --list
 
-Loads a strategy config from strategies/ folder,
+Loads a strategy JSON from saved_strategies/ folder,
 runs the backtest engine for each instrument,
 and generates reports (CSV, trade log, summary).
 """
 
 import sys
+import json
 import logging
-import importlib
+import os
 from typing import Dict, Optional
 
 import config
@@ -29,23 +31,34 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+STRATEGIES_DIR = os.path.join(os.path.dirname(__file__), "saved_strategies")
+
 
 def load_strategy(strategy_name: str) -> Dict:
     """
-    Load a strategy config dict from strategies/ folder.
+    Load a strategy config dict from saved_strategies/ folder.
 
     Args:
-        strategy_name: module name in strategies/ (e.g., "rsi_70_sell")
+        strategy_name: JSON filename without extension (e.g., "rsi_ema_cross")
 
     Returns:
         Strategy config dict
     """
-    try:
-        module = importlib.import_module(f"strategies.{strategy_name}")
-        return module.STRATEGY
-    except ModuleNotFoundError:
-        logger.error(f"Strategy '{strategy_name}' not found in strategies/")
+    path = os.path.join(STRATEGIES_DIR, f"{strategy_name}.json")
+    if not os.path.exists(path):
+        logger.error(f"Strategy file not found: {path}")
+        logger.info(f"Available: {list_strategies()}")
         sys.exit(1)
+    with open(path, "r") as f:
+        return json.load(f)
+
+
+def list_strategies() -> list:
+    """Return names of all saved strategies."""
+    if not os.path.isdir(STRATEGIES_DIR):
+        return []
+    return [f.replace(".json", "") for f in sorted(os.listdir(STRATEGIES_DIR))
+            if f.endswith(".json")]
 
 
 def run_for_instrument(instrument: str, strategy: Dict) -> Optional[Dict]:
@@ -99,13 +112,26 @@ def run_for_instrument(instrument: str, strategy: Dict) -> Optional[Dict]:
 
 def main():
     """Main entry point."""
+    # --list flag: print available strategies and exit
+    if "--list" in sys.argv:
+        print("Available strategies:")
+        for name in list_strategies():
+            print(f"  {name}")
+        sys.exit(0)
+
     # Parse strategy name from command line
-    strategy_name = "rsi_70_sell"  # default
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "--strategy" and len(sys.argv) > 2:
-            strategy_name = sys.argv[2]
-        else:
-            strategy_name = sys.argv[1]
+    strategy_name = None
+    if "--strategy" in sys.argv:
+        idx = sys.argv.index("--strategy")
+        if idx + 1 < len(sys.argv):
+            strategy_name = sys.argv[idx + 1]
+    elif len(sys.argv) > 1 and not sys.argv[1].startswith("--"):
+        strategy_name = sys.argv[1]
+
+    if strategy_name is None:
+        print("Usage: python run_backtest.py --strategy <name>")
+        print("       python run_backtest.py --list")
+        sys.exit(1)
 
     logger.info(f"Loading strategy: {strategy_name}")
     strategy = load_strategy(strategy_name)

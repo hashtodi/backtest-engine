@@ -2,8 +2,10 @@
 Base Indicator class.
 
 All indicators inherit from this.
-They calculate values on option close prices (not underlying).
-Each indicator resets per contract (new weekly expiry = fresh calculation).
+The same calculate() method works for both price sources:
+  - "option": input is option close prices, calculated per contract (resets on expiry)
+  - "spot":   input is underlying/spot prices, calculated once (no expiry reset)
+The price source is chosen in the strategy config, not here.
 """
 
 import pandas as pd

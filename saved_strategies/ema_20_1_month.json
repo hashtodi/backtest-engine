@@ -4,13 +4,14 @@
   "indicators": [
     {
       "type": "EMA",
-      "name": "ema_20",
-      "period": 20
+      "name": "opt_ema_20",
+      "period": 20,
+      "price_source": "option"
     }
   ],
   "signal_conditions": [
     {
-      "indicator": "ema_20",
+      "indicator": "opt_ema_20",
       "compare": "crosses_above",
       "value": 20.0
     }

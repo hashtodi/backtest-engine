@@ -2,8 +2,8 @@
 Dashboard tab: key metrics, equity curve, and charts.
 
 Shows:
-  - Saved strategies selector
-  - Strategy summary (collapsible)
+  - Strategy selector (must pick a saved strategy)
+  - Strategy description (collapsible)
   - Combined metrics: total P&L, return, win rate, trades
   - Per-instrument breakdown
   - Equity curve (cumulative portfolio value)
@@ -13,11 +13,9 @@ Shows:
 
 import streamlit as st
 import plotly.express as px
-from pathlib import Path
 
 import config
-from ui.helpers import load_results, load_strategy, get_combined_trades
-from ui.strategy_store import list_saved_strategies, load_saved_strategy, get_output_dir
+from ui.strategy_store import render_strategy_selector, get_output_dir
 
 
 def _load_results_from_output(strategy: dict, inst: str):
@@ -53,69 +51,16 @@ def _get_combined_from_output(strategy: dict, instruments: list):
 def render_dashboard():
     """Render the Dashboard tab."""
 
-    # ---- Strategy selector ----
-    saved = list_saved_strategies()
-    strategy = None
-    use_saved = False
-
-    if saved:
-        names = ["Latest run"] + [s["name"] for s in saved]
-        slugs = [""] + [s["slug"] for s in saved]
-        choice = st.selectbox("Strategy", names, key="dash_strategy_select")
-        idx = names.index(choice)
-        if idx > 0:
-            strategy = load_saved_strategy(slugs[idx])
-            use_saved = True
-
-    # Fall back to last run or default
+    # ---- Strategy selector (no pre-selection) ----
+    strategy, slug = render_strategy_selector("dash")
     if strategy is None:
-        strategy = st.session_state.get("last_strategy") or load_strategy("rsi_70_sell")
+        st.info("Select a strategy above to view backtest results.")
+        return
 
     instruments = strategy.get('instruments', ['NIFTY', 'SENSEX'])
 
-    # ---- Strategy summary (collapsed by default) ----
-    conditions = strategy.get('signal_conditions', [])
-    logic = strategy.get('signal_logic', 'AND')
-    cond_parts = []
-    for c in conditions:
-        val = c.get('value', c.get('other', ''))
-        cond_parts.append(f"{c['indicator']} {c['compare']} {val}")
-    signal_str = f" {logic} ".join(cond_parts) if cond_parts else "—"
-
-    levels = strategy.get('entry_levels', [])
-    if len(levels) == 1 and levels[0].get('pct_above_base', 0) == 0:
-        entry_str = "Direct entry (100%)"
-    else:
-        entry_str = " / ".join(
-            f"+{lvl['pct_above_base']}% ({lvl['capital_pct']}%)"
-            for lvl in levels
-        ) + " (staggered)"
-
-    sl_val = strategy.get('stop_loss_pct', 0)
-    tp_val = strategy.get('target_pct', 0)
-    sl_str = "Off" if sl_val >= 9999 else f"{sl_val}%"
-    tp_str = "Off" if tp_val >= 9999 else f"{tp_val}%"
-
-    with st.expander("Strategy Details", expanded=False):
-        st.markdown(f"""
-**{strategy.get('name', 'Strategy')}** — {strategy.get('description', '')}
-
-| Parameter | Value |
-|-----------|-------|
-| Direction | {strategy.get('direction', 'sell')} |
-| Signal | {signal_str} |
-| Entry Levels | {entry_str} |
-| Stop Loss | {sl_str} |
-| Target | {tp_str} |
-| Hours | {strategy.get('trading_start', '09:30')} - {strategy.get('trading_end', '14:30')} IST |
-""")
-
-    # ---- Load combined trades ----
-    # If viewing a saved strategy, load from its output folder
-    if use_saved:
-        combined = _get_combined_from_output(strategy, instruments)
-    else:
-        combined = get_combined_trades(instruments)
+    # ---- Load combined trades from saved strategy output ----
+    combined = _get_combined_from_output(strategy, instruments)
 
     if combined.empty:
         st.warning("No backtest results found. Run a backtest first!")
@@ -139,10 +84,7 @@ def render_dashboard():
 
     # ---- Per-instrument metrics ----
     for inst in instruments:
-        if use_saved:
-            df = _load_results_from_output(strategy, inst)
-        else:
-            df = load_results(inst)
+        df = _load_results_from_output(strategy, inst)
         if df.empty:
             continue
 

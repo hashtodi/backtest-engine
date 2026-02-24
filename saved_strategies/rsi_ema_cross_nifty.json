@@ -1,5 +1,5 @@
 {
-  "name": "rsi ema cross",
+  "name": "rsi ema cross-nifty",
   "description": "Custom strategy from UI",
   "indicators": [
     {
@@ -52,12 +52,13 @@
   "stop_loss_pct": 15.0,
   "target_pct": 10.0,
   "trading_start": "09:30",
-  "trading_end": "15:00",
+  "trading_end": "15:30",
   "max_trades_per_day": null,
   "instruments": [
-    "NIFTY"
+    "NIFTY",
+    "SENSEX"
   ],
-  "backtest_start": "2025-01-01",
-  "backtest_end": "2026-02-18",
+  "backtest_start": "2026-02-13",
+  "backtest_end": "2026-02-21",
   "initial_capital": 200000
 }

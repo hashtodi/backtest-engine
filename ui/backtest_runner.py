@@ -16,7 +16,10 @@ from engine.data_loader import load_data, calculate_indicators
 from engine.backtest import BacktestEngine
 from engine import reporter
 from ui.form_config import INDICATOR_PARAMS, NEEDS_VALUE, NEEDS_OTHER, auto_name, get_available_columns
-from ui.strategy_store import save_strategy, get_output_dir, list_saved_strategies, load_saved_strategy
+from ui.strategy_store import (
+    save_strategy, get_output_dir, list_saved_strategies,
+    load_saved_strategy, render_strategy_description,
+)
 from ui.strategy_form import (
     init_state,
     render_identity,
@@ -37,15 +40,41 @@ def render_backtest():
         _show_results_and_downloads()
         st.divider()
 
-    # ---- Load saved strategy selector ----
+    # ---- Strategy selector: load saved or start new ----
     saved = list_saved_strategies()
     if saved:
-        names = ["— New strategy —"] + [s["name"] for s in saved]
-        slugs = [""] + [s["slug"] for s in saved]
-        choice = st.selectbox("Load saved strategy", names, key="bt_load_select")
-        idx = names.index(choice)
-        if idx > 0 and st.button("Load", key="bt_load_btn"):
-            _load_strategy_into_form(slugs[idx])
+        names = [s["name"] for s in saved]
+        slugs = [s["slug"] for s in saved]
+
+        col_sel, col_new = st.columns([3, 1])
+        with col_sel:
+            idx = st.selectbox(
+                "Load saved strategy",
+                range(len(names)),
+                format_func=lambda i: names[i],
+                index=None,
+                placeholder="Select a strategy...",
+                key="bt_load_select",
+            )
+        with col_new:
+            st.markdown("<br>", unsafe_allow_html=True)
+            new_clicked = st.button("New Strategy", key="bt_new_btn")
+
+        # Auto-load when selection changes (track via bt_loaded_slug)
+        if idx is not None:
+            slug = slugs[idx]
+            if st.session_state.get("bt_loaded_slug") != slug:
+                _load_strategy_into_form(slug)
+                st.session_state.bt_loaded_slug = slug
+                st.rerun()
+            # Show strategy description for context
+            strategy_data = load_saved_strategy(slug)
+            if strategy_data:
+                render_strategy_description(strategy_data)
+
+        # "New Strategy" resets the form to defaults
+        if new_clicked:
+            _reset_form_to_defaults()
             st.rerun()
 
     # ---- Form sections ----
@@ -63,15 +92,37 @@ def render_backtest():
 
     st.divider()
 
+    # ---- Check if form is complete enough to save/run ----
+    has_name = bool(st.session_state.get("bt_name", "").strip())
+    has_indicators = len(st.session_state.bt_indicators) > 0
+    has_conditions = len(st.session_state.bt_conditions) > 0
+    start_d = st.session_state.get("bt_start_date")
+    end_d = st.session_state.get("bt_end_date")
+    dates_valid = start_d and end_d and start_d < end_d
+    form_ready = has_name and has_indicators and has_conditions and dates_valid
+
+    if not form_ready:
+        missing = []
+        if not has_name:
+            missing.append("a strategy name")
+        if not has_indicators:
+            missing.append("at least 1 indicator")
+        if not has_conditions:
+            missing.append("at least 1 signal condition")
+        if not dates_valid:
+            missing.append("valid date range (start < end)")
+        st.warning(f"Add {', '.join(missing)} to enable Save / Run.")
+
     # ---- Action buttons: Save + Run ----
     c_save, c_run = st.columns(2)
     with c_save:
-        if st.button("Save Strategy", width="stretch"):
+        if st.button("Save Strategy", width="stretch", disabled=not form_ready):
             strategy = _build_strategy()
             slug = save_strategy(strategy)
             st.success(f"Saved as `{slug}`")
     with c_run:
-        run_clicked = st.button("Run Backtest", type="primary", width="stretch")
+        run_clicked = st.button("Run Backtest", type="primary",
+                                width="stretch", disabled=not form_ready)
 
     if not run_clicked:
         return
@@ -88,14 +139,17 @@ def render_backtest():
             st.error(f"Fix capital allocation first ({total_cap:.1f}% ≠ 100%)")
             return
 
-    # Build strategy config and persist
+    # Build strategy config
     strategy = _build_strategy()
-    st.session_state.last_strategy = strategy
     instruments = strategy["instruments"]
     initial_capital = strategy["initial_capital"]
 
     if not instruments:
         st.error("Select at least one instrument.")
+        return
+
+    if not dates_valid:
+        st.error("Start date must be before end date.")
         return
 
     _run_backtest(strategy, instruments, initial_capital)
@@ -244,7 +298,7 @@ def _clear_dynamic_widget_keys():
     index/value params, causing loaded strategies to show default data.
     """
     stale_prefixes = (
-        "ind_type_", "ind_ind_",                                # indicator widgets
+        "ind_type_", "ind_ps_", "ind_ind_",                     # indicator widgets
         "cond_ind_", "cond_cmp_", "cond_val_", "cond_other_",  # condition widgets
         "lvl_pct_", "lvl_cap_",                                 # entry level widgets
         "rm_ind_", "rm_cond_", "rm_lvl_",                       # remove buttons
@@ -252,6 +306,35 @@ def _clear_dynamic_widget_keys():
     for k in list(st.session_state.keys()):
         if any(k.startswith(p) for p in stale_prefixes):
             del st.session_state[k]
+
+
+def _reset_form_to_defaults():
+    """
+    Reset the form to defaults for creating a new strategy.
+
+    Clears all dynamic widget keys and removes all bt_* keys from
+    session state so init_state() will re-populate fresh defaults.
+    Preserves backtest results so the user can still view them.
+    """
+    _clear_dynamic_widget_keys()
+
+    # Keys to keep even during reset (backtest results, output dir)
+    keep = {"bt_last_results", "bt_output_dir"}
+
+    # Remove all bt_* state keys so init_state() re-creates them
+    bt_keys = [k for k in st.session_state.keys()
+               if k.startswith("bt_") and k not in keep]
+    for k in bt_keys:
+        del st.session_state[k]
+
+    # Clear counter keys so _next_id() starts fresh
+    for prefix in ("_counter_ind", "_counter_cond", "_counter_lvl"):
+        if prefix in st.session_state:
+            del st.session_state[prefix]
+
+    # Clear the loaded slug tracker
+    if "bt_loaded_slug" in st.session_state:
+        del st.session_state["bt_loaded_slug"]
 
 
 def _load_strategy_into_form(slug: str):
@@ -283,15 +366,17 @@ def _load_strategy_into_form(slug: str):
         for k, v in cfg.items():
             if k not in ("type", "name"):
                 ind[k] = v
+        # Old strategies without price_source default to "option" (backward compat)
+        if "price_source" not in ind:
+            ind["price_source"] = "option"
         indicators.append(ind)
-    st.session_state.bt_indicators = indicators or [
-        {"id": "ind_0", "type": "RSI", "period": 14}
-    ]
+    st.session_state.bt_indicators = indicators
 
-    # Set widget keys for each indicator (type selectbox + param inputs)
+    # Set widget keys for each indicator (type, source, param inputs)
     for ind in st.session_state.bt_indicators:
         uid = ind["id"]
         st.session_state[f"ind_type_{uid}"] = ind["type"]
+        st.session_state[f"ind_ps_{uid}"] = ind.get("price_source", "option")
         for p in INDICATOR_PARAMS[ind["type"]]:
             if p["key"] in ind:
                 # Cast to correct type (int/float) so Streamlit widgets don't complain
@@ -315,9 +400,7 @@ def _load_strategy_into_form(slug: str):
         if "other" in sc:
             cond["other"] = sc["other"]
         conditions.append(cond)
-    st.session_state.bt_conditions = conditions or [
-        {"id": "cond_0", "compare": "crosses_above", "value": 70.0}
-    ]
+    st.session_state.bt_conditions = conditions
 
     # Set widget keys for each condition (indicator, compare, value/other)
     for cond in st.session_state.bt_conditions:
@@ -395,7 +478,11 @@ def _build_strategy() -> Dict:
     # -- Indicators --
     ind_configs = []
     for ind in st.session_state.bt_indicators:
-        cfg = {"type": ind["type"], "name": auto_name(ind)}
+        cfg = {
+            "type": ind["type"],
+            "name": auto_name(ind),
+            "price_source": ind.get("price_source", "spot"),
+        }
         for p in INDICATOR_PARAMS[ind["type"]]:
             cfg[p["key"]] = ind.get(p["key"], p["default"])
         ind_configs.append(cfg)
@@ -420,11 +507,11 @@ def _build_strategy() -> Dict:
         ]
 
     # -- SL/TP: disabled = 9999 (effectively never triggers, only EOD exit) --
-    sl = st.session_state.get("bt_sl_pct", 20.0) if st.session_state.get("bt_sl_on") else 9999
+    sl = st.session_state.get("bt_sl_pct", 15.0) if st.session_state.get("bt_sl_on") else 9999
     tp = st.session_state.get("bt_tp_pct", 10.0) if st.session_state.get("bt_tp_on") else 9999
 
     start_t = st.session_state.get("bt_start_time", dt_time(9, 30))
-    end_t = st.session_state.get("bt_end_time", dt_time(14, 30))
+    end_t = st.session_state.get("bt_end_time", dt_time(15, 15))
     start_d = st.session_state.get("bt_start_date", date(2025, 1, 1))
     end_d = st.session_state.get("bt_end_date", date(2025, 12, 31))
     max_trades = st.session_state.get("bt_max_trades", 0)
@@ -432,7 +519,7 @@ def _build_strategy() -> Dict:
     # Use user-provided name/description, fall back to a sensible default
     name = st.session_state.get("bt_name", "").strip()
     if not name:
-        name = f"Custom {st.session_state.get('bt_direction', 'sell').title()}"
+        name = f"Custom {st.session_state.get('bt_direction', 'buy').title()}"
     desc = st.session_state.get("bt_desc", "").strip() or "Custom strategy from UI"
 
     return {
@@ -441,7 +528,7 @@ def _build_strategy() -> Dict:
         "indicators": ind_configs,
         "signal_conditions": sig_conditions,
         "signal_logic": st.session_state.get("bt_logic", "AND"),
-        "direction": st.session_state.get("bt_direction", "sell"),
+        "direction": st.session_state.get("bt_direction", "buy"),
         "entry_levels": entry_levels,
         "stop_loss_pct": sl,
         "target_pct": tp,

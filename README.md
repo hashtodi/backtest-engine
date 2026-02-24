@@ -1,87 +1,98 @@
-# Options Backtesting Framework
+# RSI Options Trading Strategy
 
-Modular, configurable options backtesting system. Define strategies as config dicts, plug in any indicator, and run backtests.
+Modular options trading system with backtesting, forward testing (paper trading), and live trading via Dhan API.
 
 ## Quick Start
 
 ```bash
-# Activate virtualenv
-source venv/bin/activate
+# Install dependencies
+pip install -r requirements.txt
 
-# Run default strategy (RSI 70 Sell)
-python run_backtest.py
+# Copy env template and add your Dhan credentials
+cp .env.example .env
 
-# Run a specific strategy
-python run_backtest.py --strategy rsi_70_sell
+# Run Streamlit UI
+streamlit run app.py
+
+# Run backtest via CLI
+python run_backtest.py --strategy rsi_ema_cross
+
+# Run forward test via CLI
+python forward_test_runner.py --strategy rsi_ema_cross --instrument NIFTY
 ```
 
 ## Project Structure
 
 ```
-├── run_backtest.py               # Entry point
-├── config.py                     # Global defaults (data paths, lot sizes)
+├── app.py                        # Streamlit UI entry point
+├── config.py                     # Global config (reads .env)
+├── forward_test_runner.py        # CLI forward test entry point
+├── run_backtest.py               # CLI backtest entry point
+├── .env.example                  # Environment variable template
+├── Dockerfile                    # Docker image for deployment
+├── docker-compose.yml            # Multi-service deployment
 │
-├── strategies/                   # Strategy definitions
-│   └── rsi_70_sell.py            # RSI 70 sell strategy config
+├── datafeed/                     # Dhan API integration
+│   ├── __init__.py               # DhanDataFeed facade
+│   ├── rest_client.py            # REST API wrapper + rate limiting
+│   ├── option_chain.py           # Option chain, expiry, ATM helpers
+│   └── security_map.py           # Security ID mapping
 │
-├── indicators/                   # Indicator implementations
+├── ws_feed.py                    # Dhan WebSocket real-time tick feed
+│
+├── indicators/                   # Technical indicators
 │   ├── base.py                   # Indicator base class
-│   ├── __init__.py               # Registry + factory
-│   ├── rsi.py                    # Relative Strength Index
-│   ├── ema.py                    # Exponential Moving Average
-│   ├── sma.py                    # Simple Moving Average
-│   ├── macd.py                   # MACD (multi-output)
-│   ├── bollinger.py              # Bollinger Bands (multi-output)
-│   └── vwap.py                   # Volume Weighted Average Price
+│   ├── rsi.py, ema.py, sma.py   # Single-output indicators
+│   ├── macd.py, bollinger.py     # Multi-output indicators
+│   ├── vwap.py, supertrend.py    # Specialized indicators
+│   └── __init__.py               # Registry + factory
 │
-├── engine/                       # Core backtest engine
+├── engine/                       # Backtest engine
 │   ├── backtest.py               # Main backtest loop
-│   ├── data_loader.py            # Data loading + indicator calculation
+│   ├── data_loader.py            # Data loading + indicator calc
 │   ├── signals.py                # Signal condition evaluation
-│   ├── trade.py                  # Trade + PositionPart classes
-│   ├── reporter.py               # Reports (CSV, trade log, summary)
+│   ├── trade.py                  # Trade lifecycle management
+│   ├── reporter.py               # Reports (CSV, logs, summary)
 │   └── detailed_logger.py        # Minute-by-minute detailed log
 │
-├── backtest_engine.py            # (Legacy) original monolithic engine
+├── forward/                      # Forward test (paper trading)
+│   ├── engine.py                 # Main loop + orchestration
+│   ├── price_buffer.py           # Rolling price buffer
+│   ├── warmup.py                 # Multi-day historical warmup
+│   ├── tick_checker.py           # Tick-level SL/TP/entry checks
+│   ├── helpers.py                # Event builders, timestamp utils
+│   └── paper_trader.py           # Paper trade logger
 │
-├── dhan_datafeed.py              # Dhan API integration (live trading)
-├── trading_bot_runner.py         # Live trading runner (future)
-├── telegram_notifier.py          # Telegram alerts (future)
+├── trading/                      # Live trading module
+│   ├── order_executor.py         # Paper/live order placement
+│   ├── risk_manager.py           # Daily loss limit, kill switch
+│   └── order_tracker.py          # Order status polling
 │
-└── data/options/                 # Historical parquet data
-    ├── nifty/NIFTY_OPTIONS_1m.parquet
-    └── sensex/SENSEX_OPTIONS_1m.parquet
+├── ui/                           # Streamlit UI tabs
+│   ├── dashboard.py              # Performance dashboard
+│   ├── trades.py                 # Trade explorer
+│   ├── backtest_runner.py        # Run backtest tab
+│   ├── forward_test.py           # Forward test tab
+│   ├── strategy_form.py          # Strategy configuration form
+│   ├── strategy_store.py         # Load/save strategies
+│   └── form_config.py            # Form defaults
+│
+├── saved_strategies/             # JSON strategy definitions
+├── deploy/                       # Deployment configs
+│   ├── lightsail-setup.md        # AWS Lightsail guide
+│   └── nginx.conf                # Nginx reverse proxy config
+│
+├── telegram_notifier.py          # Telegram alerts (optional)
+└── data/                         # Historical parquet data
 ```
 
-## Strategy Format
+## Strategies
 
-Each strategy is a Python file in `strategies/` exporting a `STRATEGY` dict:
+Strategies are JSON files in `saved_strategies/`. Create and manage them via the Streamlit UI or edit JSON directly.
 
-```python
-STRATEGY = {
-    "name": "RSI 70 Sell",
-    "indicators": [
-        {"type": "RSI", "name": "rsi_14", "period": 14},
-    ],
-    "signal_conditions": [
-        {"indicator": "rsi_14", "compare": "crosses_above", "value": 70},
-    ],
-    "signal_logic": "AND",
-    "direction": "sell",
-    "entry_levels": [
-        {"pct_above_base": 5,  "capital_pct": 33.33},
-        {"pct_above_base": 10, "capital_pct": 33.33},
-        {"pct_above_base": 15, "capital_pct": 33.34},
-    ],
-    "stop_loss_pct": 20,
-    "target_pct": 10,
-    "trading_start": "09:30",
-    "trading_end": "14:30",
-    "instruments": ["NIFTY", "SENSEX"],
-    "backtest_start": "2025-01-01",
-    "backtest_end": "2025-12-31",
-    "initial_capital": 200000,
-}
+```bash
+# List available strategies
+python run_backtest.py --list
 ```
 
 ## Available Indicators
@@ -93,72 +104,33 @@ STRATEGY = {
 | SMA | `SMA` | Single series | `period` (default 20) |
 | MACD | `MACD` | `macd`, `signal`, `histogram` | `fast`, `slow`, `signal_period` |
 | Bollinger | `BOLLINGER` | `upper`, `middle`, `lower` | `period`, `std_dev` |
-| VWAP | `VWAP` | Single series | (resets daily, requires volume) |
+| VWAP | `VWAP` | Single series | (resets daily) |
+| SuperTrend | `SUPERTREND` | `trend`, `direction` | `period`, `multiplier` |
 
-## Signal Comparison Types
+Each indicator can use `"price_source": "spot"` or `"price_source": "option"`.
 
-| Compare | Description |
-|---------|-------------|
-| `crosses_above` | Indicator crosses above a fixed value |
-| `crosses_below` | Indicator crosses below a fixed value |
-| `above` | Indicator is above a value |
-| `below` | Indicator is below a value |
-| `price_crosses_above` | Close price crosses above indicator |
-| `price_crosses_below` | Close price crosses below indicator |
-| `crosses_above_indicator` | One indicator crosses above another |
-| `crosses_below_indicator` | One indicator crosses below another |
+## Trading Modes
 
-## Outputs
+| Mode | Description |
+|------|-------------|
+| **Paper** | Simulated trades, no real money (default) |
+| **Live** | Real orders via Dhan API with safety rails |
 
-After running a backtest:
+Safety features for live trading:
+- Daily loss limit: 35% of capital (configurable)
+- Kill switch: halts all trading instantly
+- INTRADAY options only
 
-- `backtest_results_NIFTY.csv` / `backtest_results_SENSEX.csv` - Trade-level CSV
-- `backtest_trades.log` - Detailed trade log
-- `backtest_summary.md` - Performance summary
-- `backtest_detailed_NIFTY.log` / `backtest_detailed_SENSEX.log` - Minute-by-minute log
+## Deployment
 
-## Data Schema
-
-Parquet files contain 1-minute options data:
-
-| Column | Description |
-|--------|-------------|
-| `ts` | Epoch seconds |
-| `datetime` | ISO 8601 with IST offset |
-| `underlying` | NIFTY or SENSEX |
-| `option_type` | CE or PE |
-| `expiry_type` | WEEK or MONTH |
-| `expiry_code` | 1=nearest, 2=next, 3=far |
-| `atm_strike` | ATM strike (spot rounded to nearest step) |
-| `strike_offset` | Offset from ATM: 0, +1, -1, ... |
-| `moneyness` | ITM, ATM, or OTM |
-| `strike` | Actual strike price |
-| `spot` | Underlying spot price |
-| `open/high/low/close` | Option OHLC |
-| `volume` | Volume traded |
-| `oi` | Open interest |
-| `iv` | Implied volatility |
-
-## Adding a New Strategy
-
-1. Create `strategies/my_strategy.py` with a `STRATEGY` dict
-2. Run: `python run_backtest.py --strategy my_strategy`
-
-## Adding a New Indicator
-
-1. Create `indicators/my_indicator.py` inheriting from `indicators.base.Indicator`
-2. Implement `calculate(close, volume)` -> `pd.Series` or `Dict[str, pd.Series]`
-3. Register in `indicators/__init__.py` `_REGISTRY`
-
-## Live Trading (Future)
+Deploy on AWS Lightsail ($5/month) using Docker:
 
 ```bash
-# Set credentials in .env.local
-python trading_bot_runner.py
+docker-compose up -d
 ```
 
-See `TELEGRAM_SETUP.md` for Telegram notification setup.
+See `deploy/lightsail-setup.md` for the full guide.
 
 ## Disclaimer
 
-For educational purposes only. Options trading involves substantial risk.
+For educational purposes only. Options trading involves substantial risk of loss.

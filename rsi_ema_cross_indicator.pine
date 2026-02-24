@@ -1,0 +1,120 @@
+// RSI EMA Cross Strategy — Manual Trading Helper
+// Apply to the 1-MIN chart of ATM NIFTY/SENSEX OPTION CONTRACT
+
+//@version=6
+indicator("RSI EMA Cross Signal", overlay=true, max_lines_count=500, max_labels_count=500)
+
+// --- INPUTS ---
+rsi_period = input.int(14, "RSI Period", minval=2)
+ema_fast   = input.int(9, "EMA Fast Period", minval=2)
+ema_slow   = input.int(20, "EMA Slow Period", minval=2)
+rsi_thresh = input.float(50.0, "RSI Threshold", minval=0, maxval=100)
+l1_pct     = input.float(5.0, "L1 Drop %", minval=0.1, maxval=50) / 100
+l2_pct     = input.float(10.0, "L2 Drop %", minval=0.1, maxval=50) / 100
+l3_pct     = input.float(15.0, "L3 Drop %", minval=0.1, maxval=50) / 100
+sl_pct     = input.float(15.0, "Stop Loss %", minval=0.1, maxval=50) / 100
+tp_pct     = input.float(10.0, "Take Profit %", minval=0.1, maxval=50) / 100
+show_lvls  = input.bool(true, "Show Entry / SL / TP Levels")
+
+// --- INDICATORS ---
+rsi_val = ta.rsi(close, rsi_period)
+ema_f   = ta.ema(close, ema_fast)
+ema_s   = ta.ema(close, ema_slow)
+
+// --- SIGNAL ---
+ema_cross = ta.crossover(ema_f, ema_s)
+signal    = (rsi_val > rsi_thresh) and ema_cross
+
+// --- PLOT EMAs (orange=9, blue=20) ---
+plot(ema_f, "EMA 9", color=color.orange, linewidth=2)
+plot(ema_s, "EMA 20", color=color.blue, linewidth=2)
+
+// --- SIGNAL MARKER ---
+plotshape(signal, title="Buy Signal", location=location.belowbar,
+  style=shape.triangleup, size=size.normal, color=color.lime,
+  text="SIGNAL")
+
+// --- LEVEL LINES & LABELS ---
+var float base_price = na
+var line  ln_base = na, var line  ln_l1 = na
+var line  ln_l2 = na,   var line  ln_l3 = na
+var line  ln_sl = na,   var line  ln_tp = na
+var label lb_base = na, var label lb_l1 = na
+var label lb_l2 = na,   var label lb_l3 = na
+var label lb_sl = na,   var label lb_tp = na
+
+f_line(int x, float y, color c, string s) =>
+    line.new(x, y, x + 60, y, color=c, style=s == "d" ? line.style_dashed : line.style_solid, width=2)
+
+f_label(int x, float y, string t, color c) =>
+    label.new(x, y, t, style=label.style_label_left, color=c, textcolor=color.white, size=size.small)
+
+if signal and show_lvls
+    base_price := close
+
+    line.delete(ln_base), line.delete(ln_l1)
+    line.delete(ln_l2),   line.delete(ln_l3)
+    line.delete(ln_sl),   line.delete(ln_tp)
+    label.delete(lb_base), label.delete(lb_l1)
+    label.delete(lb_l2),   label.delete(lb_l3)
+    label.delete(lb_sl),   label.delete(lb_tp)
+
+    p_l1 = base_price * (1 - l1_pct)
+    p_l2 = base_price * (1 - l2_pct)
+    p_l3 = base_price * (1 - l3_pct)
+    avg  = (p_l1 + p_l2 + p_l3) / 3
+    p_sl = avg * (1 - sl_pct)
+    p_tp = avg * (1 + tp_pct)
+    bx   = bar_index
+    lx   = bx + 62
+
+    ln_base := f_line(bx, base_price, color.white, "d")
+    ln_l1   := f_line(bx, p_l1, color.green, "s")
+    ln_l2   := f_line(bx, p_l2, color.green, "s")
+    ln_l3   := f_line(bx, p_l3, color.green, "s")
+    ln_sl   := f_line(bx, p_sl, color.red, "s")
+    ln_tp   := f_line(bx, p_tp, color.teal, "s")
+
+    fmt = "#.##"
+    lb_base := f_label(lx, base_price,
+      "BASE " + str.tostring(base_price, fmt), color.gray)
+    lb_l1 := f_label(lx, p_l1,
+      "L1 -5% " + str.tostring(p_l1, fmt), color.green)
+    lb_l2 := f_label(lx, p_l2,
+      "L2 -10% " + str.tostring(p_l2, fmt), color.green)
+    lb_l3 := f_label(lx, p_l3,
+      "L3 -15% " + str.tostring(p_l3, fmt), color.green)
+    lb_sl := f_label(lx, p_sl,
+      "SL -15% " + str.tostring(p_sl, fmt), color.red)
+    lb_tp := f_label(lx, p_tp,
+      "TP +10% " + str.tostring(p_tp, fmt), color.teal)
+
+// --- RSI INFO TABLE (top-right) ---
+var table info = table.new(position.top_right, 2, 4,
+  bgcolor=color.new(color.black, 70), border_width=1)
+
+if barstate.islast
+    rc = rsi_val > rsi_thresh ? color.lime : color.gray
+    ec = ema_f > ema_s ? color.lime : color.gray
+    es = ema_f > ema_s ? "Fast > Slow" : "Fast < Slow"
+
+    table.cell(info, 0, 0, "RSI(14)",
+      text_color=color.white, text_size=size.normal)
+    table.cell(info, 1, 0, str.tostring(rsi_val, "#.##"),
+      text_color=rc, text_size=size.normal)
+    table.cell(info, 0, 1, "EMA Status",
+      text_color=color.white, text_size=size.normal)
+    table.cell(info, 1, 1, es,
+      text_color=ec, text_size=size.normal)
+    table.cell(info, 0, 2, "EMA 9",
+      text_color=color.orange, text_size=size.normal)
+    table.cell(info, 1, 2, str.tostring(ema_f, "#.##"),
+      text_color=color.white, text_size=size.normal)
+    table.cell(info, 0, 3, "EMA 20",
+      text_color=color.blue, text_size=size.normal)
+    table.cell(info, 1, 3, str.tostring(ema_s, "#.##"),
+      text_color=color.white, text_size=size.normal)
+
+// --- ALERT ---
+alertcondition(signal, "RSI EMA Cross Buy Signal",
+  "BUY SIGNAL: RSI>50 & EMA9 crossed above EMA20 | Price: {{close}}")

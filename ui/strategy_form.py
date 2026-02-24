@@ -18,7 +18,7 @@ from datetime import date, time as dt_time
 import config
 from ui.form_config import (
     INDICATOR_PARAMS, COMPARE_TYPES,
-    NEEDS_VALUE, NEEDS_OTHER,
+    NEEDS_VALUE, NEEDS_OTHER, PRICE_SOURCES,
     auto_name, get_available_columns,
 )
 
@@ -47,27 +47,23 @@ def init_state():
     """
     # Identity
     if "bt_name" not in st.session_state:
-        st.session_state.bt_name = "My Strategy"
+        st.session_state.bt_name = ""
     if "bt_desc" not in st.session_state:
         st.session_state.bt_desc = ""
 
-    # Indicators
+    # Indicators — empty by default; user adds what they need
     if "bt_indicators" not in st.session_state:
-        st.session_state.bt_indicators = [
-            {"id": "ind_0", "type": "RSI", "period": 14},
-        ]
+        st.session_state.bt_indicators = []
 
-    # Signal conditions
+    # Signal conditions — empty by default; user adds after indicators
     if "bt_conditions" not in st.session_state:
-        st.session_state.bt_conditions = [
-            {"id": "cond_0", "compare": "crosses_above", "value": 70.0},
-        ]
+        st.session_state.bt_conditions = []
     if "bt_logic" not in st.session_state:
         st.session_state.bt_logic = "AND"
 
-    # Entry
+    # Entry — default: buy, direct entry
     if "bt_direction" not in st.session_state:
-        st.session_state.bt_direction = "sell"
+        st.session_state.bt_direction = "buy"
     if "bt_entry_type" not in st.session_state:
         st.session_state.bt_entry_type = "Direct"
     if "bt_entry_levels" not in st.session_state:
@@ -77,21 +73,21 @@ def init_state():
             {"id": "lvl_2", "pct": 15.0, "capital_pct": 33.34},
         ]
 
-    # Risk management
+    # Risk management — SL 15%, TP 10%
     if "bt_sl_on" not in st.session_state:
         st.session_state.bt_sl_on = True
     if "bt_sl_pct" not in st.session_state:
-        st.session_state.bt_sl_pct = 20.0
+        st.session_state.bt_sl_pct = 15.0
     if "bt_tp_on" not in st.session_state:
         st.session_state.bt_tp_on = True
     if "bt_tp_pct" not in st.session_state:
         st.session_state.bt_tp_pct = 10.0
 
-    # Session settings
+    # Session settings — 9:30 to 15:15, both instruments, 0 = unlimited
     if "bt_start_time" not in st.session_state:
         st.session_state.bt_start_time = dt_time(9, 30)
     if "bt_end_time" not in st.session_state:
-        st.session_state.bt_end_time = dt_time(14, 30)
+        st.session_state.bt_end_time = dt_time(15, 15)
     if "bt_start_date" not in st.session_state:
         st.session_state.bt_start_date = date(2025, 1, 1)
     if "bt_end_date" not in st.session_state:
@@ -130,7 +126,7 @@ def render_indicators():
     for i, ind in enumerate(indicators):
         uid = ind["id"]
         with st.container(border=True):
-            c_type, c_params, c_rm = st.columns([2, 5, 0.5])
+            c_type, c_source, c_params, c_rm = st.columns([2, 1.5, 3.5, 0.5])
 
             with c_type:
                 # Ensure widget key exists (no index= to avoid Session State conflict)
@@ -148,11 +144,22 @@ def render_indicators():
                         wk = f"ind_{uid}_{p['key']}"
                         if wk in st.session_state:
                             del st.session_state[wk]
-                    indicators[i] = {"id": uid, "type": new_type}
+                    ps = ind.get("price_source", "spot")
+                    indicators[i] = {"id": uid, "type": new_type, "price_source": ps}
                     for p in INDICATOR_PARAMS[new_type]:
                         indicators[i][p["key"]] = p["default"]
                         st.session_state[f"ind_{uid}_{p['key']}"] = p["default"]
                     st.rerun()
+
+            with c_source:
+                # Price source: spot (underlying) or option (contract close)
+                wk = f"ind_ps_{uid}"
+                if wk not in st.session_state:
+                    st.session_state[wk] = ind.get("price_source", "spot")
+
+                indicators[i]["price_source"] = st.selectbox(
+                    "Source", PRICE_SOURCES, key=wk,
+                )
 
             with c_params:
                 params = INDICATOR_PARAMS[ind["type"]]
@@ -179,22 +186,33 @@ def render_indicators():
                     st.caption("No parameters needed")
 
             with c_rm:
-                if len(indicators) > 1:
-                    if st.button("✕", key=f"rm_ind_{uid}"):
-                        indicators.pop(i)
-                        st.rerun()
+                if st.button("✕", key=f"rm_ind_{uid}"):
+                    for p in INDICATOR_PARAMS[ind["type"]]:
+                        k = f"ind_{uid}_{p['key']}"
+                        if k in st.session_state:
+                            del st.session_state[k]
+                    for prefix in (f"ind_type_{uid}", f"ind_ps_{uid}"):
+                        if prefix in st.session_state:
+                            del st.session_state[prefix]
+                    indicators.pop(i)
+                    st.rerun()
+
+    if not indicators:
+        st.info("No indicators configured. Click **Add Indicator** to get started.")
 
     if st.button("+ Add Indicator", key="add_ind"):
-        indicators.append({"id": _next_id("ind"), "type": "RSI", "period": 14})
+        indicators.append({
+            "id": _next_id("ind"), "type": "RSI", "period": 14, "price_source": "spot",
+        })
         st.rerun()
 
-    # Duplicate detection
-    names = [auto_name(ind) for ind in indicators]
-    if len(names) != len(set(names)):
-        st.error("Duplicate indicator detected. Change the type or parameters.")
+    if indicators:
+        names = [auto_name(ind) for ind in indicators]
+        if len(names) != len(set(names)):
+            st.error("Duplicate indicator detected. Change the type or parameters.")
 
-    cols = get_available_columns(indicators)
-    st.caption(f"Available columns: `{'`, `'.join(cols)}`")
+        cols = get_available_columns(indicators)
+        st.caption(f"Available columns: `{'`, `'.join(cols)}`")
 
 
 # ============================================
@@ -270,10 +288,16 @@ def render_conditions():
                 else:
                     st.caption("Compares to close price")
             with c4:
-                if len(conditions) > 1:
-                    if st.button("✕", key=f"rm_cond_{uid}"):
-                        conditions.pop(i)
-                        st.rerun()
+                if st.button("✕", key=f"rm_cond_{uid}"):
+                    for prefix in ("cond_ind_", "cond_cmp_", "cond_val_", "cond_other_"):
+                        k = f"{prefix}{uid}"
+                        if k in st.session_state:
+                            del st.session_state[k]
+                    conditions.pop(i)
+                    st.rerun()
+
+    if not conditions:
+        st.info("No signal conditions configured. Click **Add Condition** below.")
 
     if st.button("+ Add Condition", key="add_cond"):
         conditions.append({"id": _next_id("cond"), "compare": "crosses_above", "value": 70.0})
@@ -290,7 +314,7 @@ def render_entry():
     c1, c2 = st.columns(2)
     with c1:
         # No default — init_state() sets bt_direction
-        st.selectbox("Direction", ["sell", "buy"], key="bt_direction")
+        st.selectbox("Direction", ["buy", "sell"], key="bt_direction")
     with c2:
         # No default — init_state() sets bt_entry_type
         st.radio("Entry Type", ["Direct", "Staggered"],
@@ -325,6 +349,11 @@ def render_entry():
             with c_rm:
                 if len(levels) > 1:
                     if st.button("✕", key=f"rm_lvl_{uid}"):
+                        # Clean up orphaned widget keys for this level
+                        for prefix in ("lvl_pct_", "lvl_cap_"):
+                            k = f"{prefix}{uid}"
+                            if k in st.session_state:
+                                del st.session_state[k]
                         levels.pop(i)
                         st.rerun()
 
@@ -351,11 +380,17 @@ def render_risk():
         # No value= param — default set in init_state()
         sl_on = st.toggle("Stop Loss", key="bt_sl_on")
         if sl_on:
-            st.number_input("SL %", 0.1, 100.0, step=1.0, key="bt_sl_pct")
+            st.number_input(
+                "SL %", min_value=0.1, max_value=100.0,
+                step=0.5, format="%.1f", key="bt_sl_pct",
+            )
     with c2:
         tp_on = st.toggle("Take Profit", key="bt_tp_on")
         if tp_on:
-            st.number_input("TP %", 0.1, 100.0, step=1.0, key="bt_tp_pct")
+            st.number_input(
+                "TP %", min_value=0.1, max_value=100.0,
+                step=0.5, format="%.1f", key="bt_tp_pct",
+            )
 
 
 # ============================================
@@ -367,7 +402,6 @@ def render_session():
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        # No default value — init_state() sets bt_start_time
         st.time_input("Start Time", key="bt_start_time")
     with c2:
         st.time_input("End Time", key="bt_end_time")
@@ -375,6 +409,12 @@ def render_session():
         st.date_input("Start Date", key="bt_start_date")
     with c4:
         st.date_input("End Date", key="bt_end_date")
+
+    # Validate: start date must be before end date
+    start_d = st.session_state.get("bt_start_date")
+    end_d = st.session_state.get("bt_end_date")
+    if start_d and end_d and start_d >= end_d:
+        st.error("Start date must be before end date.")
 
     c5, c6, c7 = st.columns(3)
     with c5:

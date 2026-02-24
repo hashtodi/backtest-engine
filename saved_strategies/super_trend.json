@@ -1,0 +1,52 @@
+{
+  "name": "super trend",
+  "description": "Custom strategy from UI",
+  "indicators": [
+    {
+      "type": "SUPERTREND",
+      "name": "opt_st_4_11",
+      "price_source": "option",
+      "factor": 4,
+      "atr_period": 11
+    },
+    {
+      "type": "SMA",
+      "name": "opt_sma_13",
+      "price_source": "option",
+      "period": 13
+    }
+  ],
+  "signal_conditions": [
+    {
+      "indicator": "opt_st_4_11_value",
+      "compare": "price_crosses_above"
+    },
+    {
+      "indicator": "opt_sma_13",
+      "compare": "price_above"
+    }
+  ],
+  "signal_logic": "AND",
+  "direction": "buy",
+  "entry_levels": [
+    {
+      "pct_above_base": 5.0,
+      "capital_pct": 66.0
+    },
+    {
+      "pct_above_base": 10.0,
+      "capital_pct": 34.0
+    }
+  ],
+  "stop_loss_pct": 6.0,
+  "target_pct": 7.5,
+  "trading_start": "09:30",
+  "trading_end": "15:15",
+  "max_trades_per_day": null,
+  "instruments": [
+    "NIFTY"
+  ],
+  "backtest_start": "2026-02-18",
+  "backtest_end": "2026-02-24",
+  "initial_capital": 200000
+}

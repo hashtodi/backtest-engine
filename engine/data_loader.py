@@ -4,9 +4,12 @@ Data loading and indicator calculation.
 Loads parquet options data, applies filters (date range, weekly expiry),
 and calculates all indicators defined in the strategy config.
 
-Indicators are calculated per unique contract:
-  contract = strike + option_type + expiry_type + expiry_code
-Each contract gets a fresh indicator calculation (resets on new expiry).
+Two price sources for indicators:
+  - "option" (default): calculated on option close price, per unique contract
+    (contract = strike + option_type + expiry_type + expiry_code).
+    Resets on new expiry.
+  - "spot": calculated on the underlying/spot price. One value per minute,
+    shared across all contracts. Does NOT reset on expiry.
 """
 
 import pandas as pd
@@ -77,19 +80,21 @@ def load_data(data_path: str, start_date: str, end_date: str) -> pd.DataFrame:
 
 def calculate_indicators(df: pd.DataFrame, indicator_configs: List[Dict]) -> pd.DataFrame:
     """
-    Calculate all indicators per unique contract.
+    Calculate all indicators and add them as columns.
 
-    Each indicator is calculated on the contract's close prices (and volume for VWAP).
-    Results are added as new columns to the DataFrame.
-    A "_prev" column is also added for each indicator (for crossover detection).
+    Supports two price sources:
+      - "option": calculated per contract on option close price (existing behavior)
+      - "spot":   calculated once on underlying spot price, merged by datetime
+
+    A "_prev" column is added for each indicator (for crossover detection).
 
     For multi-output indicators (MACD, Bollinger), each output gets its own column:
-      e.g., "macd_12_26_9_macd", "macd_12_26_9_signal", "macd_12_26_9_histogram"
+      e.g., "opt_macd_12_26_9_macd", "spot_bb_20_2_upper"
 
     Args:
         df: DataFrame from load_data()
         indicator_configs: list of dicts from strategy, e.g.:
-            [{"type": "RSI", "period": 14, "name": "rsi_14"}]
+            [{"type": "RSI", "period": 14, "name": "spot_rsi_14", "price_source": "spot"}]
 
     Returns:
         DataFrame with indicator columns added
@@ -105,57 +110,103 @@ def calculate_indicators(df: pd.DataFrame, indicator_configs: List[Dict]) -> pd.
     # Create indicator instances
     indicators: List[Indicator] = []
     for cfg in indicator_configs:
-        # Extract type and name, pass rest as params
         ind_type = cfg['type']
         ind_name = cfg['name']
-        params = {k: v for k, v in cfg.items() if k not in ('type', 'name')}
+        # Pass all params except type, name, and price_source to the indicator class
+        params = {k: v for k, v in cfg.items() if k not in ('type', 'name', 'price_source')}
         ind = get_indicator(ind_type, name=ind_name, **params)
         indicators.append(ind)
 
-    logger.info(f"Calculating {len(indicators)} indicator(s) per contract...")
+    # Split into spot and option indicators
+    spot_pairs = [(ind, cfg) for ind, cfg in zip(indicators, indicator_configs)
+                  if cfg.get('price_source', 'option') == 'spot']
+    option_pairs = [(ind, cfg) for ind, cfg in zip(indicators, indicator_configs)
+                    if cfg.get('price_source', 'option') != 'spot']
 
-    for ind, cfg in zip(indicators, indicator_configs):
-        # VWAP resets daily — group by contract + date.
-        # All other indicators are continuous per contract.
-        if cfg['type'] == 'VWAP':
-            group_cols = CONTRACT_GROUP_COLS + ['date']
-        else:
-            group_cols = CONTRACT_GROUP_COLS
+    # --- Spot indicators: one calculation on the spot price timeline ---
+    if spot_pairs:
+        logger.info(f"Calculating {len(spot_pairs)} spot indicator(s) on underlying price...")
+        # Extract unique spot price per minute (same for all contracts at a given time)
+        spot_df = (df.drop_duplicates('datetime')[['datetime', 'spot']]
+                   .sort_values('datetime').reset_index(drop=True))
 
-        groups = df.groupby(group_cols)
+        for ind, cfg in spot_pairs:
+            result = ind.calculate(spot_df['spot'])
+            _merge_spot_result(df, spot_df, ind, result)
 
-        # Calculate indicator for each group
-        result_parts = []
+    # --- Option indicators: per-contract calculation on option close ---
+    if option_pairs:
+        logger.info(f"Calculating {len(option_pairs)} option indicator(s) per contract...")
 
-        for _, group in groups:
-            group = group.sort_values('datetime')
-            result = ind.calculate(group['close'], group.get('volume'))
-
-            if isinstance(result, dict):
-                # Multi-output indicator (MACD, Bollinger)
-                result_parts.append(result)
+        for ind, cfg in option_pairs:
+            # VWAP resets daily — group by contract + date.
+            # All other indicators are continuous per contract.
+            if cfg['type'] == 'VWAP':
+                group_cols = CONTRACT_GROUP_COLS + ['date']
             else:
-                # Single-output indicator (RSI, EMA, SMA, VWAP)
+                group_cols = CONTRACT_GROUP_COLS
+
+            groups = df.groupby(group_cols)
+            result_parts = []
+
+            for _, group in groups:
+                group = group.sort_values('datetime')
+                # SuperTrend needs high/low for proper True Range calculation.
+                # Other indicators just get close + volume.
+                if cfg['type'] == 'SUPERTREND':
+                    result = ind.calculate(
+                        group['close'], group.get('volume'),
+                        high=group.get('high'), low=group.get('low'),
+                    )
+                else:
+                    result = ind.calculate(group['close'], group.get('volume'))
                 result_parts.append(result)
 
-        if isinstance(result_parts[0], dict):
-            # Multi-output: merge each sub-series
-            sub_keys = result_parts[0].keys()
-            for key in sub_keys:
-                col_name = f"{ind.name}_{key}"
-                combined = pd.concat([r[key] for r in result_parts]).sort_index()
-                df[col_name] = combined
-                # Previous value for crossover detection
-                df[f"{col_name}_prev"] = df.groupby(CONTRACT_GROUP_COLS)[col_name].shift(1)
-            logger.info(f"  {ind.name}: {', '.join(sub_keys)} calculated")
-        else:
-            # Single-output: merge all groups
-            col_name = ind.name
-            combined = pd.concat(result_parts).sort_index()
-            df[col_name] = combined
-            # Previous value for crossover detection
-            df[f"{col_name}_prev"] = df.groupby(CONTRACT_GROUP_COLS)[col_name].shift(1)
-            non_null = df[col_name].notna().sum()
-            logger.info(f"  {col_name}: {non_null:,} non-null values")
+            _merge_option_result(df, ind, result_parts)
 
     return df
+
+
+def _merge_spot_result(df, spot_df, ind, result):
+    """Merge a spot indicator result back into the main DataFrame by datetime.
+
+    Uses dict-based mapping to avoid timezone mismatch issues with pd.Series.map().
+    """
+    if isinstance(result, dict):
+        # Multi-output (MACD, Bollinger on spot)
+        for key, series in result.items():
+            col_name = f"{ind.name}_{key}"
+            spot_map = dict(zip(spot_df['datetime'], series.values))
+            df[col_name] = df['datetime'].map(spot_map)
+            # _prev per contract (for crossover detection within a contract's timeline)
+            df[f"{col_name}_prev"] = df.groupby(CONTRACT_GROUP_COLS)[col_name].shift(1)
+        logger.info(f"  {ind.name} [spot]: {', '.join(result.keys())} calculated")
+    else:
+        # Single-output (RSI, EMA, SMA on spot)
+        col_name = ind.name
+        spot_map = dict(zip(spot_df['datetime'], result.values))
+        df[col_name] = df['datetime'].map(spot_map)
+        df[f"{col_name}_prev"] = df.groupby(CONTRACT_GROUP_COLS)[col_name].shift(1)
+        non_null = df[col_name].notna().sum()
+        logger.info(f"  {col_name} [spot]: {non_null:,} non-null values")
+
+
+def _merge_option_result(df, ind, result_parts):
+    """Merge per-contract option indicator results back into the main DataFrame."""
+    if isinstance(result_parts[0], dict):
+        # Multi-output (MACD, Bollinger)
+        sub_keys = result_parts[0].keys()
+        for key in sub_keys:
+            col_name = f"{ind.name}_{key}"
+            combined = pd.concat([r[key] for r in result_parts]).sort_index()
+            df[col_name] = combined
+            df[f"{col_name}_prev"] = df.groupby(CONTRACT_GROUP_COLS)[col_name].shift(1)
+        logger.info(f"  {ind.name} [option]: {', '.join(sub_keys)} calculated")
+    else:
+        # Single-output (RSI, EMA, SMA, VWAP)
+        col_name = ind.name
+        combined = pd.concat(result_parts).sort_index()
+        df[col_name] = combined
+        df[f"{col_name}_prev"] = df.groupby(CONTRACT_GROUP_COLS)[col_name].shift(1)
+        non_null = df[col_name].notna().sum()
+        logger.info(f"  {col_name} [option]: {non_null:,} non-null values")

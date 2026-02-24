@@ -1,5 +1,5 @@
 {
-  "name": "rsi ema cross",
+  "name": "ema breakout",
   "description": "Custom strategy from UI",
   "indicators": [
     {
@@ -23,41 +23,29 @@
   ],
   "signal_conditions": [
     {
-      "indicator": "opt_rsi_14",
-      "compare": "above",
-      "value": 50.0
-    },
-    {
       "indicator": "opt_ema_9",
       "compare": "crosses_above_indicator",
       "other": "opt_ema_20"
     }
   ],
   "signal_logic": "AND",
-  "direction": "buy",
+  "direction": "sell",
   "entry_levels": [
     {
-      "pct_above_base": 5.0,
-      "capital_pct": 33.33
-    },
-    {
-      "pct_above_base": 10.0,
-      "capital_pct": 33.33
-    },
-    {
-      "pct_above_base": 15.0,
-      "capital_pct": 33.34
+      "pct_above_base": 0,
+      "capital_pct": 100.0
     }
   ],
-  "stop_loss_pct": 15.0,
+  "stop_loss_pct": 10.0,
   "target_pct": 10.0,
   "trading_start": "09:30",
-  "trading_end": "15:00",
+  "trading_end": "14:30",
   "max_trades_per_day": null,
   "instruments": [
-    "NIFTY"
+    "NIFTY",
+    "SENSEX"
   ],
   "backtest_start": "2025-01-01",
-  "backtest_end": "2026-02-18",
+  "backtest_end": "2025-12-31",
   "initial_capital": 200000
 }

@@ -1,0 +1,46 @@
+# Docker Compose for Algo Engine
+#
+# Services:
+#   - ui:      Streamlit dashboard (port 8501)
+#   - forward: Forward test runner (background worker)
+#
+# Usage:
+#   docker-compose up -d ui           # Start only the UI
+#   docker-compose up -d              # Start UI + forward test
+#   docker-compose logs -f forward    # Watch forward test logs
+#   docker-compose down               # Stop everything
+#
+# To run multiple forward tests, use profiles or duplicate the
+# forward service with different strategy/instrument env vars.
+
+services:
+  ui:
+    image: algo-engine:latest
+    build: .
+    container_name: algo-engine-ui
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - ./saved_strategies:/app/saved_strategies
+      - ./data:/app/data
+      - ./forward_test_logs:/app/forward_test_logs
+    restart: unless-stopped
+
+  forward:
+    image: algo-engine:latest
+    build: .
+    container_name: algo-engine-forward
+    command: >
+      python forward_test_runner.py
+      --strategy ${FORWARD_STRATEGY:-rsi_ema_cross}
+      --instrument ${FORWARD_INSTRUMENT:-NIFTY}
+    env_file:
+      - .env
+    volumes:
+      - ./saved_strategies:/app/saved_strategies
+      - ./forward_test_logs:/app/forward_test_logs
+    restart: unless-stopped
+    depends_on:
+      - ui

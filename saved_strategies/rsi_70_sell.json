@@ -4,13 +4,14 @@
   "indicators": [
     {
       "type": "RSI",
-      "name": "rsi_14",
-      "period": 14
+      "name": "opt_rsi_14",
+      "period": 14,
+      "price_source": "option"
     }
   ],
   "signal_conditions": [
     {
-      "indicator": "rsi_14",
+      "indicator": "opt_rsi_14",
       "compare": "crosses_above",
       "value": 70.0
     }
