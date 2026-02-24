@@ -4,10 +4,12 @@ Paper trader — thin wrapper around ForwardTestEngine.
 Responsibilities:
   - Tracks completed trades and running P&L
   - Logs every event with timestamp to a log file
+  - Writes trades to CSV as they complete (daily + master file)
   - Provides get_summary() for the UI
   - Optionally sends Telegram notifications on key events
 """
 
+import csv
 import logging
 import json
 from datetime import datetime
@@ -54,20 +56,24 @@ class PaperTrader:
         self.entries_count = 0
         self.exits_count = 0
 
-        # Log file
+        # Log and CSV file paths
         LOG_DIR.mkdir(exist_ok=True)
         ts = datetime.now(IST).strftime("%Y%m%d_%H%M%S")
         self.log_path = LOG_DIR / f"{instrument}_{strategy_name}_{ts}.log"
+        self.csv_path = LOG_DIR / f"{instrument}_{strategy_name}_{ts}_trades.csv"
+        self.master_csv_path = LOG_DIR / f"{instrument}_{strategy_name}_all_trades.csv"
+        self._csv_header_written = False
         self._log_file = None
 
     # ------------------------------------------
     # EVENT HANDLER (passed to engine.run_loop)
     # ------------------------------------------
-    def on_event(self, event: dict):
+    def on_event(self, event: dict, engine=None):
         """
         Callback for each engine event.
 
         Stores in memory, writes to log file, and updates counters.
+        When an exit occurs and engine is provided, syncs trades to CSV.
         """
         self.events.append(event)
 
@@ -79,6 +85,9 @@ class PaperTrader:
             self.entries_count += 1
         elif etype == "exit":
             self.exits_count += 1
+            # Write trade to CSV immediately on exit
+            if engine is not None:
+                self.sync_trades(engine.completed_trades)
 
         # Write to log file
         self._write_log_line(event)
@@ -119,14 +128,42 @@ class PaperTrader:
             logger.warning(f"Failed to write log line: {e}")
 
     # ------------------------------------------
+    # CSV EXPORT
+    # ------------------------------------------
+    def _append_trade_to_csv(self, trade: Trade):
+        """
+        Append a single completed trade to both the daily CSV and master CSV.
+        Creates headers on first write. Master CSV accumulates across days.
+        """
+        row = trade.to_dict()
+
+        for csv_file in [self.csv_path, self.master_csv_path]:
+            try:
+                file_exists = csv_file.exists() and csv_file.stat().st_size > 0
+                with open(csv_file, "a", newline="") as f:
+                    writer = csv.DictWriter(f, fieldnames=row.keys())
+                    if not file_exists:
+                        writer.writeheader()
+                    writer.writerow(row)
+            except Exception as e:
+                logger.warning(f"Failed to write trade to {csv_file}: {e}")
+
+    # ------------------------------------------
     # TRADE TRACKING
     # ------------------------------------------
     def sync_trades(self, trades: List[Trade]):
         """
         Sync completed trades from the engine.
+        Writes any new trades to CSV as they are discovered.
         Call this periodically or at the end of the session.
         """
+        # Find trades we haven't seen yet and write them to CSV
+        already_tracked = len(self.completed_trades)
         self.completed_trades = list(trades)
+
+        for trade in trades[already_tracked:]:
+            if trade.status == "CLOSED":
+                self._append_trade_to_csv(trade)
 
     # ------------------------------------------
     # SUMMARY

@@ -11,7 +11,6 @@ Usage:
 """
 
 import argparse
-import csv
 import logging
 import os
 import signal
@@ -182,8 +181,12 @@ def main():
     signal.signal(signal.SIGINT, _handle_signal)
     signal.signal(signal.SIGTERM, _handle_signal)
 
+    # Wrap on_event to pass engine reference for live CSV export
+    def _on_event(event):
+        paper.on_event(event, engine=engine)
+
     # Run the loop (blocks until market close or stop)
-    engine.run_loop(on_event=paper.on_event, stop_event=stop_event)
+    engine.run_loop(on_event=_on_event, stop_event=stop_event)
 
     # Sync final trades
     paper.sync_trades(engine.completed_trades)
@@ -204,22 +207,9 @@ def main():
     logger.info(f"Total P&L %  : {summary['total_pnl_pct']:+.2f}%")
     logger.info(f"Total P&L Rs : {summary['total_money_pnl']:+.2f}")
     logger.info(f"Log file     : {summary['log_file']}")
+    logger.info(f"Daily CSV    : {paper.csv_path}")
+    logger.info(f"Master CSV   : {paper.master_csv_path}")
     logger.info("=" * 60)
-
-    # Export trades to CSV (same folder as the log file)
-    trades = summary.get("trades", [])
-    if trades:
-        csv_name = paper.log_path.replace(".log", "_trades.csv")
-        try:
-            with open(csv_name, "w", newline="") as f:
-                writer = csv.DictWriter(f, fieldnames=trades[0].keys())
-                writer.writeheader()
-                writer.writerows(trades)
-            logger.info(f"Trades CSV   : {csv_name}")
-        except Exception as e:
-            logger.warning(f"Failed to write trades CSV: {e}")
-    else:
-        logger.info("No trades to export.")
 
 
 if __name__ == "__main__":
