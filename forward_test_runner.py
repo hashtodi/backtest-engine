@@ -11,6 +11,7 @@ Usage:
 """
 
 import argparse
+import csv
 import logging
 import os
 import signal
@@ -204,6 +205,21 @@ def main():
     logger.info(f"Total P&L Rs : {summary['total_money_pnl']:+.2f}")
     logger.info(f"Log file     : {summary['log_file']}")
     logger.info("=" * 60)
+
+    # Export trades to CSV (same folder as the log file)
+    trades = summary.get("trades", [])
+    if trades:
+        csv_name = paper.log_path.replace(".log", "_trades.csv")
+        try:
+            with open(csv_name, "w", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=trades[0].keys())
+                writer.writeheader()
+                writer.writerows(trades)
+            logger.info(f"Trades CSV   : {csv_name}")
+        except Exception as e:
+            logger.warning(f"Failed to write trades CSV: {e}")
+    else:
+        logger.info("No trades to export.")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,59 @@
+{
+  "name": "supertrend - booming bulls",
+  "description": "Custom strategy from UI",
+  "indicators": [
+    {
+      "type": "SUPERTREND",
+      "name": "opt_st_4_11",
+      "price_source": "option",
+      "factor": 4,
+      "atr_period": 11
+    },
+    {
+      "type": "SMA",
+      "name": "opt_sma_13",
+      "price_source": "option",
+      "period": 13
+    },
+    {
+      "type": "SUPERTREND",
+      "name": "opt_st_3_10",
+      "price_source": "option",
+      "factor": 3,
+      "atr_period": 10
+    }
+  ],
+  "signal_conditions": [
+    {
+      "indicator": "opt_sma_13",
+      "compare": "price_crosses_above"
+    },
+    {
+      "indicator": "opt_st_4_11_value",
+      "compare": "price_above"
+    },
+    {
+      "indicator": "opt_st_3_10_value",
+      "compare": "price_crosses_below"
+    }
+  ],
+  "signal_logic": "AND",
+  "direction": "buy",
+  "entry_levels": [
+    {
+      "pct_above_base": 0,
+      "capital_pct": 100.0
+    }
+  ],
+  "stop_loss_pct": 5.0,
+  "target_pct": 7.5,
+  "trading_start": "09:30",
+  "trading_end": "15:15",
+  "max_trades_per_day": null,
+  "instruments": [
+    "NIFTY"
+  ],
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2025-12-31",
+  "initial_capital": 200000
+}
