@@ -190,14 +190,19 @@ def write_trade_log(
         f.write(f"SL: {strategy_config.get('stop_loss_pct', 0)}% | "
                 f"TP: {strategy_config.get('target_pct', 0)}%\n")
 
-        # Entry levels summary
-        entry_levels = strategy_config.get('entry_levels', [])
-        if entry_levels:
+        # Entry config summary
+        entry = strategy_config.get('entry', {})
+        etype = entry.get('type', 'direct')
+        if etype == 'indicator_level':
+            f.write(f"Entry: Indicator Level ({entry.get('indicator', '?')})\n")
+        elif etype == 'staggered':
             levels_str = " / ".join(
-                f"+{lvl['pct_above_base']}% ({lvl['capital_pct']}%)"
-                for lvl in entry_levels
+                f"+{lvl['pct_from_base']}% ({lvl['capital_pct']}%)"
+                for lvl in entry.get('levels', [])
             )
-            f.write(f"Entry Levels: {levels_str}\n")
+            f.write(f"Entry: Staggered at {levels_str}\n")
+        else:
+            f.write("Entry: Direct (100%)\n")
 
         f.write("=" * 80 + "\n\n")
 
@@ -303,14 +308,19 @@ def write_summary(
             logic = strategy_config.get('signal_logic', 'AND')
             f.write(f"- **Signal**: {f' {logic} '.join(cond_strs)}\n")
 
-        # Entry levels
-        entry_levels = strategy_config.get('entry_levels', [])
-        if entry_levels:
+        # Entry config
+        entry = strategy_config.get('entry', {})
+        etype = entry.get('type', 'direct')
+        if etype == 'indicator_level':
+            f.write(f"- **Entry**: Indicator Level ({entry.get('indicator', '?')})\n")
+        elif etype == 'staggered':
             levels_str = " / ".join(
-                f"+{lvl['pct_above_base']}% ({lvl['capital_pct']}% capital)"
-                for lvl in entry_levels
+                f"+{lvl['pct_from_base']}% ({lvl['capital_pct']}% capital)"
+                for lvl in entry.get('levels', [])
             )
             f.write(f"- **Entry**: Staggered at {levels_str}\n")
+        else:
+            f.write("- **Entry**: Direct (100%)\n")
 
         f.write(f"- **Stop Loss**: {strategy_config.get('stop_loss_pct', 0)}% "
                 f"(exact fill assumed)\n")

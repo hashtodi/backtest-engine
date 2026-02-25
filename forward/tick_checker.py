@@ -117,6 +117,42 @@ class TickChecker:
 # ============================================
 # These are used by both tick_checker and the main engine.
 
+def check_indicator_entry(trade: Trade, prev_ltp: float, curr_ltp: float,
+                          indicator_value: float, t: datetime,
+                          direction: str) -> List[str]:
+    """
+    Check if price crossed through the indicator level between two ticks.
+
+    The indicator value is the dynamic limit order price. If it falls
+    between prev_ltp and curr_ltp, the price must have passed through it.
+    Fill at the indicator value (single level, 100% capital).
+
+    Returns list of event messages.
+    """
+    events = []
+    if trade.status != "WAITING_ENTRY":
+        return events
+
+    # Check: did the price cross through the indicator level?
+    lo = min(prev_ltp, curr_ltp)
+    hi = max(prev_ltp, curr_ltp)
+
+    if lo <= indicator_value <= hi:
+        # Update target and fill
+        trade.update_entry_target(indicator_value)
+        next_level = trade.get_next_unfilled_level()
+        if next_level is not None:
+            trade.add_entry(next_level, t, indicator_value)
+            events.append(
+                f"ENTRY (indicator level): "
+                f"LTP {prev_ltp:.2f}->{curr_ltp:.2f} crossed "
+                f"indicator={indicator_value:.2f} | "
+                f"filled @ {indicator_value:.2f}"
+            )
+
+    return events
+
+
 def _check_staggered_entry(trade: Trade, ltp: float, t: datetime,
                            direction: str) -> List[str]:
     """

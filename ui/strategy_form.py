@@ -18,7 +18,8 @@ from datetime import date, time as dt_time
 import config
 from ui.form_config import (
     INDICATOR_PARAMS, COMPARE_TYPES,
-    NEEDS_VALUE, NEEDS_OTHER, PRICE_SOURCES,
+    NEEDS_VALUE, NEEDS_OTHER, NEEDS_PRICE_FIELD, PRICE_FIELDS,
+    PRICE_SOURCES,
     auto_name, get_available_columns,
 )
 
@@ -72,6 +73,9 @@ def init_state():
             {"id": "lvl_1", "pct": 10.0, "capital_pct": 33.33},
             {"id": "lvl_2", "pct": 15.0, "capital_pct": 33.34},
         ]
+    # Indicator column used as dynamic entry level (for "Indicator Level" entry type)
+    if "bt_entry_indicator" not in st.session_state:
+        st.session_state.bt_entry_indicator = ""
 
     # Risk management — SL 15%, TP 10%
     if "bt_sl_on" not in st.session_state:
@@ -285,11 +289,22 @@ def render_conditions():
                     conditions[i]["other"] = st.selectbox(
                         "Other Indicator", available, key=wk,
                     )
+                elif compare in NEEDS_PRICE_FIELD:
+                    # Price-vs-indicator: let user pick which price field to compare.
+                    # e.g. "high" to catch wicks, "close" for standard comparison.
+                    wk = f"cond_pf_{uid}"
+                    if wk not in st.session_state:
+                        st.session_state[wk] = cond.get("price_field", "close")
+
+                    conditions[i]["price_field"] = st.selectbox(
+                        "Price Field", PRICE_FIELDS, key=wk,
+                    )
                 else:
                     st.caption("Compares to close price")
             with c4:
                 if st.button("✕", key=f"rm_cond_{uid}"):
-                    for prefix in ("cond_ind_", "cond_cmp_", "cond_val_", "cond_other_"):
+                    for prefix in ("cond_ind_", "cond_cmp_", "cond_val_",
+                                   "cond_other_", "cond_pf_"):
                         k = f"{prefix}{uid}"
                         if k in st.session_state:
                             del st.session_state[k]
@@ -317,10 +332,30 @@ def render_entry():
         st.selectbox("Direction", ["buy", "sell"], key="bt_direction")
     with c2:
         # No default — init_state() sets bt_entry_type
-        st.radio("Entry Type", ["Direct", "Staggered"],
+        st.radio("Entry Type", ["Direct", "Staggered", "Indicator Level"],
                  horizontal=True, key="bt_entry_type")
 
-    if st.session_state.bt_entry_type == "Staggered":
+    # "Indicator Level" entry: user picks an indicator whose live value
+    # becomes the dynamic limit order price. Signal fires -> wait for
+    # price to touch indicator level -> fill at indicator value.
+    if st.session_state.bt_entry_type == "Indicator Level":
+        available = get_available_columns(st.session_state.bt_indicators)
+        if available:
+            # Default to saved value if valid, else first available
+            default = st.session_state.bt_entry_indicator
+            if default not in available:
+                default = available[0]
+                st.session_state.bt_entry_indicator = default
+            st.session_state.bt_entry_indicator = st.selectbox(
+                "Entry Indicator (limit level)",
+                available,
+                index=available.index(default),
+                key="_bt_entry_indicator_sel",
+            )
+        else:
+            st.warning("Add indicators first to use Indicator Level entry.")
+
+    elif st.session_state.bt_entry_type == "Staggered":
         levels = st.session_state.bt_entry_levels
 
         for i, lvl in enumerate(levels):

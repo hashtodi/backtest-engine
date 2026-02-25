@@ -18,12 +18,9 @@
   ],
   "signal_logic": "AND",
   "direction": "sell",
-  "entry_levels": [
-    {
-      "pct_above_base": 0,
-      "capital_pct": 100.0
-    }
-  ],
+  "entry": {
+    "type": "direct"
+  },
   "stop_loss_pct": 5.0,
   "target_pct": 5.0,
   "trading_start": "10:30",

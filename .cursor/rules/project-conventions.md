@@ -40,9 +40,10 @@ Strategies are JSON files in `saved_strategies/`:
     ],
     "signal_logic": "AND",
     "direction": "sell",
-    "entry_levels": [
-        {"pct_above_base": 5, "capital_pct": 33.33}
-    ],
+    "entry": {
+        "type": "staggered",
+        "levels": [{"pct_from_base": 5, "capital_pct": 33.33}]
+    },
     "stop_loss_pct": 20,
     "target_pct": 10,
     "trading_start": "09:30",

@@ -35,20 +35,14 @@
   ],
   "signal_logic": "AND",
   "direction": "buy",
-  "entry_levels": [
-    {
-      "pct_above_base": 5.0,
-      "capital_pct": 33.33
-    },
-    {
-      "pct_above_base": 10.0,
-      "capital_pct": 33.33
-    },
-    {
-      "pct_above_base": 15.0,
-      "capital_pct": 33.34
-    }
-  ],
+  "entry": {
+    "type": "staggered",
+    "levels": [
+      {"pct_from_base": 5.0, "capital_pct": 33.33},
+      {"pct_from_base": 10.0, "capital_pct": 33.33},
+      {"pct_from_base": 15.0, "capital_pct": 33.34}
+    ]
+  },
   "stop_loss_pct": 15.0,
   "target_pct": 10.0,
   "trading_start": "09:30",

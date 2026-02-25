@@ -16,7 +16,8 @@ import os
 import signal
 import sys
 import threading
-from datetime import datetime
+import time
+from datetime import datetime, timedelta
 
 import pytz
 
@@ -64,6 +65,64 @@ def _load_env(path: str = ".env.local"):
                 continue
             key, value = line.split("=", 1)
             os.environ[key.strip()] = value.strip().strip("\"'")
+
+
+# ============================================
+# MARKET HOURS WAIT
+# ============================================
+
+def _wait_for_market(trading_start: str, trading_end: str, stop_event: threading.Event):
+    """
+    Sleep until market is open. Avoids restart-loop spam when
+    the container runs outside trading hours.
+
+    Returns True if we should proceed, False if stop was requested.
+    """
+    logger = logging.getLogger("forward_test_runner")
+
+    start_time = datetime.strptime(trading_start, "%H:%M").time()
+    end_time = datetime.strptime(trading_end, "%H:%M").time()
+
+    while not stop_event.is_set():
+        now = datetime.now(IST)
+        t = now.time()
+
+        # Market is open — proceed
+        if start_time <= t <= end_time:
+            return True
+
+        # Calculate sleep duration until next market open
+        if t > end_time:
+            # Market closed for today — sleep until tomorrow's start
+            tomorrow = (now + timedelta(days=1)).replace(
+                hour=int(trading_start.split(":")[0]),
+                minute=int(trading_start.split(":")[1]),
+                second=0, microsecond=0,
+            )
+            wait_secs = (tomorrow - now).total_seconds()
+        else:
+            # Before market open today
+            today_open = now.replace(
+                hour=int(trading_start.split(":")[0]),
+                minute=int(trading_start.split(":")[1]),
+                second=0, microsecond=0,
+            )
+            wait_secs = (today_open - now).total_seconds()
+
+        hours = int(wait_secs // 3600)
+        mins = int((wait_secs % 3600) // 60)
+        logger.info(
+            f"Market closed. Sleeping {hours}h {mins}m until "
+            f"{trading_start} IST..."
+        )
+
+        # Sleep in 60-second chunks so we can respond to stop_event
+        while wait_secs > 0 and not stop_event.is_set():
+            chunk = min(wait_secs, 60)
+            stop_event.wait(timeout=chunk)
+            wait_secs -= chunk
+
+    return False
 
 
 # ============================================
@@ -139,6 +198,24 @@ def main():
         instrument = instruments[0]
 
     lot_size = LOT_SIZE.get(instrument, 1)
+    use_ws = not args.no_websocket
+    trading_start = strategy.get('trading_start', '09:30')
+    trading_end = strategy.get('trading_end', '14:30')
+
+    # Graceful shutdown on Ctrl+C / Docker stop
+    stop_event = threading.Event()
+
+    def _handle_signal(signum, frame):
+        logger.info("\nShutdown requested. Closing positions...")
+        stop_event.set()
+
+    signal.signal(signal.SIGINT, _handle_signal)
+    signal.signal(signal.SIGTERM, _handle_signal)
+
+    # Wait for market hours (sleeps instead of exit+restart loop)
+    if not _wait_for_market(trading_start, trading_end, stop_event):
+        logger.info("Shutdown requested while waiting for market. Exiting.")
+        return
 
     logger.info("=" * 60)
     logger.info("FORWARD TEST (Paper Trading)")
@@ -149,9 +226,7 @@ def main():
     logger.info(f"Lot size  : {lot_size}")
     logger.info(f"SL: {strategy.get('stop_loss_pct', 20)}%  "
                 f"TP: {strategy.get('target_pct', 10)}%")
-    use_ws = not args.no_websocket
-    logger.info(f"Hours: {strategy.get('trading_start', '09:30')} - "
-                f"{strategy.get('trading_end', '14:30')}")
+    logger.info(f"Hours: {trading_start} - {trading_end}")
     feed_desc = "WebSocket (tick-level SL/TP/entry)" if use_ws else "REST API only (minute-level)"
     logger.info(f"Data feed: {feed_desc}")
     logger.info("=" * 60)
@@ -170,16 +245,6 @@ def main():
 
     # Init paper trader
     paper = PaperTrader(instrument, args.strategy, lot_size)
-
-    # Graceful shutdown on Ctrl+C
-    stop_event = threading.Event()
-
-    def _handle_signal(signum, frame):
-        logger.info("\nShutdown requested (Ctrl+C). Closing positions...")
-        stop_event.set()
-
-    signal.signal(signal.SIGINT, _handle_signal)
-    signal.signal(signal.SIGTERM, _handle_signal)
 
     # Wrap on_event to pass engine reference for live CSV export
     def _on_event(event):

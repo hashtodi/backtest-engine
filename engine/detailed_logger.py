@@ -47,14 +47,19 @@ class DetailedLogger:
         self.file.write(f"SL: {cfg.get('stop_loss_pct', 0)}% | "
                         f"TP: {cfg.get('target_pct', 0)}%\n")
 
-        # Entry levels
-        entry_levels = cfg.get('entry_levels', [])
-        if entry_levels:
+        # Entry config
+        entry = cfg.get('entry', {})
+        etype = entry.get('type', 'direct')
+        if etype == 'indicator_level':
+            self.file.write(f"Entry: Indicator Level ({entry.get('indicator', '?')})\n")
+        elif etype == 'staggered':
             levels_str = " / ".join(
-                f"+{lvl['pct_above_base']}% ({lvl['capital_pct']}%)"
-                for lvl in entry_levels
+                f"+{lvl['pct_from_base']}% ({lvl['capital_pct']}%)"
+                for lvl in entry.get('levels', [])
             )
-            self.file.write(f"Entry levels: {levels_str}\n")
+            self.file.write(f"Entry: Staggered at {levels_str}\n")
+        else:
+            self.file.write("Entry: Direct (100%)\n")
 
         # Signal conditions
         conditions = cfg.get('signal_conditions', [])

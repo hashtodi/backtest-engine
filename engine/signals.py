@@ -9,10 +9,12 @@ Comparison types:
   - crosses_below: indicator crosses below a fixed value (e.g., RSI crosses 30)
   - above: indicator is above a value (no crossover needed)
   - below: indicator is below a value
-  - price_above: close price is above indicator line (no crossover needed)
-  - price_below: close price is below indicator line (no crossover needed)
-  - price_crosses_above: close price crosses above indicator line
-  - price_crosses_below: close price crosses below indicator line
+  - price_above: price is above indicator line (no crossover needed)
+  - price_below: price is below indicator line (no crossover needed)
+  - price_crosses_above: price crosses above indicator line
+  - price_crosses_below: price crosses below indicator line
+  For price_* types, condition["price_field"] selects which price
+  (close, high, low, open) to compare. Defaults to "close".
   - crosses_above_indicator: one indicator crosses above another
   - crosses_below_indicator: one indicator crosses below another
 """
@@ -43,23 +45,24 @@ def check_condition(row, condition: Dict) -> Tuple[bool, str]:
     # --- Price vs indicator (no crossover) ---
     # These only need curr, not prev. Check them before the blanket NaN guard
     # so they work on the first bar after warmup (where prev may still be NaN).
+    # price_field lets the user choose close/high/low/open (default: close).
 
     if compare == 'price_above':
-        # Close price is above the indicator line (no crossover needed)
-        close = row.get('close')
-        if pd.isna(close) or pd.isna(curr):
-            return False, f"close or {ind_name}=NaN"
-        met = close > curr
-        desc = f"price above {ind_name} ({close:.2f} > {curr:.2f})" if met else ""
+        pf = condition.get('price_field', 'close')
+        price = row.get(pf)
+        if pd.isna(price) or pd.isna(curr):
+            return False, f"{pf} or {ind_name}=NaN"
+        met = price > curr
+        desc = f"{pf} above {ind_name} ({price:.2f} > {curr:.2f})" if met else ""
         return met, desc
 
     elif compare == 'price_below':
-        # Close price is below the indicator line (no crossover needed)
-        close = row.get('close')
-        if pd.isna(close) or pd.isna(curr):
-            return False, f"close or {ind_name}=NaN"
-        met = close < curr
-        desc = f"price below {ind_name} ({close:.2f} < {curr:.2f})" if met else ""
+        pf = condition.get('price_field', 'close')
+        price = row.get(pf)
+        if pd.isna(price) or pd.isna(curr):
+            return False, f"{pf} or {ind_name}=NaN"
+        met = price < curr
+        desc = f"{pf} below {ind_name} ({price:.2f} < {curr:.2f})" if met else ""
         return met, desc
 
     # Skip if indicator values are NaN (warmup period).
@@ -100,23 +103,26 @@ def check_condition(row, condition: Dict) -> Tuple[bool, str]:
     # --- Price vs indicator crossover comparisons ---
 
     elif compare == 'price_crosses_above':
-        # Close price crosses above the indicator line
-        close = row.get('close')
-        close_prev = row.get('close_prev', close)  # may not exist
-        if pd.isna(close):
-            return False, "close=NaN"
-        met = close_prev <= prev and close > curr
-        desc = f"price crossed above {ind_name} ({close:.2f} > {curr:.2f})" if met else ""
+        # Price crosses above the indicator line.
+        # Uses price_field (close/high/low/open) and its _prev counterpart.
+        pf = condition.get('price_field', 'close')
+        price = row.get(pf)
+        price_prev = row.get(f'{pf}_prev', price)
+        if pd.isna(price):
+            return False, f"{pf}=NaN"
+        met = price_prev <= prev and price > curr
+        desc = f"{pf} crossed above {ind_name} ({price:.2f} > {curr:.2f})" if met else ""
         return met, desc
 
     elif compare == 'price_crosses_below':
-        # Close price crosses below the indicator line
-        close = row.get('close')
-        close_prev = row.get('close_prev', close)
-        if pd.isna(close):
-            return False, "close=NaN"
-        met = close_prev >= prev and close < curr
-        desc = f"price crossed below {ind_name} ({close:.2f} < {curr:.2f})" if met else ""
+        # Price crosses below the indicator line.
+        pf = condition.get('price_field', 'close')
+        price = row.get(pf)
+        price_prev = row.get(f'{pf}_prev', price)
+        if pd.isna(price):
+            return False, f"{pf}=NaN"
+        met = price_prev >= prev and price < curr
+        desc = f"{pf} crossed below {ind_name} ({price:.2f} < {curr:.2f})" if met else ""
         return met, desc
 
     # --- Indicator vs indicator comparisons ---

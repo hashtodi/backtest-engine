@@ -3,7 +3,7 @@ Rolling price buffer for spot and option bars.
 
 Maintains:
   - spot_bars: continuous list of (datetime, price) for underlying
-  - option_bars: per-contract list of (datetime, close, high, low)
+  - option_bars: per-contract list of (datetime, close, high, low, open)
 
 Contract identity = strike + option_type (mirrors backtest grouping).
 Resets on expiry change (new nearest weekly — resets ALL option buffers).
@@ -78,7 +78,8 @@ class PriceBuffer:
     # OPTIONS
     # ------------------------------------------
     def fill_option(self, dt, strike: int, option_type: str, ltp: float,
-                    high: float = None, low: float = None):
+                    high: float = None, low: float = None,
+                    open_price: float = None):
         """
         Silently append a bar to a specific contract's buffer.
 
@@ -92,6 +93,7 @@ class PriceBuffer:
             ltp:         close price
             high:        optional real high (defaults to ltp)
             low:         optional real low (defaults to ltp)
+            open_price:  optional real open (defaults to ltp)
         """
         key = f"{int(strike)}_{option_type}"
         if key not in self.option_bars:
@@ -101,12 +103,14 @@ class PriceBuffer:
             "close": ltp,
             "high": high if high is not None else ltp,
             "low": low if low is not None else ltp,
+            "open": open_price if open_price is not None else ltp,
         })
         if len(self.option_bars[key]) > MAX_BUFFER_BARS:
             self.option_bars[key] = self.option_bars[key][-MAX_BUFFER_BARS:]
 
     def add_option(self, dt, strike: int, option_type: str, ltp: float,
-                   high: float = None, low: float = None):
+                   high: float = None, low: float = None,
+                   open_price: float = None):
         """
         Append an option price bar (live use).
 
@@ -122,6 +126,7 @@ class PriceBuffer:
             ltp:         close price (last traded price)
             high:        optional real high from candle aggregator
             low:         optional real low from candle aggregator
+            open_price:  optional real open from candle aggregator
         """
         key = f"{int(strike)}_{option_type}"
         prev_key = self._current_key.get(option_type)
@@ -145,6 +150,7 @@ class PriceBuffer:
             "close": ltp,
             "high": high if high is not None else ltp,
             "low": low if low is not None else ltp,
+            "open": open_price if open_price is not None else ltp,
         })
 
         # Trim

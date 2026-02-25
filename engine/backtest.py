@@ -20,7 +20,7 @@ import logging
 from datetime import datetime, time
 from typing import Dict, List, Optional
 
-from engine.trade import Trade
+from engine.trade import Trade, parse_entry_config
 from engine.signals import check_signal
 from engine.detailed_logger import DetailedLogger
 
@@ -71,8 +71,8 @@ class BacktestEngine:
         self.signal_conditions = strategy.get('signal_conditions', [])
         self.signal_logic = strategy.get('signal_logic', 'AND')
 
-        # Entry levels from strategy
-        self.entry_levels_config = strategy.get('entry_levels', [])
+        # Entry config: parsed from strategy["entry"] dict
+        self.entry_levels_config, self.entry_indicator = parse_entry_config(strategy)
 
         # Max trades per day (None = unlimited)
         self.max_trades_per_day = strategy.get('max_trades_per_day', None)
@@ -143,6 +143,50 @@ class BacktestEngine:
                     next_level = trade.get_next_unfilled_level()
                 else:
                     break
+
+        return events
+
+    # ------------------------------------------
+    # INDICATOR LEVEL ENTRY CHECK
+    # ------------------------------------------
+    def _check_indicator_entry(self, trade: Trade, minute_data, t) -> List[str]:
+        """
+        Check if price touches the dynamic indicator level for entry.
+
+        The indicator value is the limit order price. If the candle's
+        low-high range contains the indicator value, the price must have
+        passed through that level. Fill at the indicator value.
+
+        Returns list of event messages for logging.
+        """
+        events = []
+        if trade.status != 'WAITING_ENTRY':
+            return events
+
+        candle = self._get_contract_candle(trade, minute_data)
+        if candle is None:
+            return events
+
+        # Read the indicator value from this candle's row
+        ind_val = candle.get(self.entry_indicator)
+        if ind_val is None or pd.isna(ind_val):
+            return events
+
+        # Check: did price touch the indicator level within this candle?
+        if candle['low'] <= ind_val <= candle['high']:
+            # Update the entry level target to the current indicator value
+            trade.update_entry_target(ind_val)
+
+            # Fill the single entry level at the indicator price
+            next_level = trade.get_next_unfilled_level()
+            if next_level is not None:
+                trade.add_entry(next_level, t, ind_val)
+                events.append(
+                    f"ENTRY (indicator level): "
+                    f"{self.entry_indicator}={ind_val:.2f} | "
+                    f"range=[{candle['low']:.2f}, {candle['high']:.2f}] | "
+                    f"filled @ {ind_val:.2f}"
+                )
 
         return events
 
@@ -303,8 +347,13 @@ class BacktestEngine:
         ) if candle is not None else "no data"
 
         if trade.status == 'WAITING_ENTRY':
-            next_lvl = trade.get_next_unfilled_level()
-            lvl_str = f"L{next_lvl.level_num}={next_lvl.target_price:.2f}" if next_lvl else ""
+            if self.entry_indicator and candle is not None:
+                ind_val = candle.get(self.entry_indicator)
+                lvl_str = (f"limit={ind_val:.2f}" if ind_val is not None
+                           and pd.notna(ind_val) else "limit=NaN")
+            else:
+                next_lvl = trade.get_next_unfilled_level()
+                lvl_str = f"L{next_lvl.level_num}={next_lvl.target_price:.2f}" if next_lvl else ""
             return (f"observing {strike} {opt} | {price_str} | "
                     f"waiting {lvl_str}")
 
@@ -439,14 +488,22 @@ class BacktestEngine:
                                 lot_size=self.lot_size,
                             )
                             day_trade_count += 1
-                            levels_str = " ".join(
-                                f"L{lvl.level_num}={lvl.target_price:.2f}"
-                                for lvl in active_ce.entry_levels
-                            )
+                            if self.entry_indicator:
+                                ind_val = row.get(self.entry_indicator)
+                                entry_info = (
+                                    f"entry_indicator={self.entry_indicator}"
+                                    f"({ind_val:.2f})" if pd.notna(ind_val)
+                                    else f"entry_indicator={self.entry_indicator}(NaN)"
+                                )
+                            else:
+                                entry_info = " ".join(
+                                    f"L{lvl.level_num}={lvl.target_price:.2f}"
+                                    for lvl in active_ce.entry_levels
+                                )
                             events.append(
                                 f"CE SIGNAL: {reason} on "
                                 f"{int(row['strike'])} CE | "
-                                f"base={row['close']:.2f} | {levels_str}"
+                                f"base={row['close']:.2f} | {entry_info}"
                             )
 
                         elif opt_type == 'PE' and active_pe is None:
@@ -463,33 +520,43 @@ class BacktestEngine:
                                 lot_size=self.lot_size,
                             )
                             day_trade_count += 1
-                            levels_str = " ".join(
-                                f"L{lvl.level_num}={lvl.target_price:.2f}"
-                                for lvl in active_pe.entry_levels
-                            )
+                            if self.entry_indicator:
+                                ind_val = row.get(self.entry_indicator)
+                                entry_info = (
+                                    f"entry_indicator={self.entry_indicator}"
+                                    f"({ind_val:.2f})" if pd.notna(ind_val)
+                                    else f"entry_indicator={self.entry_indicator}(NaN)"
+                                )
+                            else:
+                                entry_info = " ".join(
+                                    f"L{lvl.level_num}={lvl.target_price:.2f}"
+                                    for lvl in active_pe.entry_levels
+                                )
                             events.append(
                                 f"PE SIGNAL: {reason} on "
                                 f"{int(row['strike'])} PE | "
-                                f"base={row['close']:.2f} | {levels_str}"
+                                f"base={row['close']:.2f} | {entry_info}"
                             )
 
-                # --- STAGGERED ENTRY (not at exit time) ---
+                # --- ENTRY CHECK (not at exit time) ---
+                # Uses indicator level entry if entry_indicator is set,
+                # otherwise falls back to staggered/direct entry.
                 if not is_exit_time:
-                    if active_ce and active_ce.status in (
-                        'WAITING_ENTRY', 'PARTIAL_POSITION'
-                    ):
-                        entry_events = self._check_staggered_entry(
-                            active_ce, minute_data, t
-                        )
-                        events.extend([f"CE {e}" for e in entry_events])
+                    for opt_label, active in [("CE", active_ce), ("PE", active_pe)]:
+                        if active is None:
+                            continue
+                        if active.status not in ('WAITING_ENTRY', 'PARTIAL_POSITION'):
+                            continue
 
-                    if active_pe and active_pe.status in (
-                        'WAITING_ENTRY', 'PARTIAL_POSITION'
-                    ):
-                        entry_events = self._check_staggered_entry(
-                            active_pe, minute_data, t
-                        )
-                        events.extend([f"PE {e}" for e in entry_events])
+                        if self.entry_indicator:
+                            entry_events = self._check_indicator_entry(
+                                active, minute_data, t
+                            )
+                        else:
+                            entry_events = self._check_staggered_entry(
+                                active, minute_data, t
+                            )
+                        events.extend([f"{opt_label} {e}" for e in entry_events])
 
                 # --- EXIT MANAGEMENT ---
                 if active_ce:

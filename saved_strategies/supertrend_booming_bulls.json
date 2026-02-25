@@ -1,8 +1,11 @@
 {
   "name": "supertrend - booming bulls",
-  "description": "Custom strategy from UI",
+  "description": "Buy CE/PE options when price is in a bullish zone (above SMA 13 and SuperTrend 4,11). Entry happens at the SuperTrend 3,10 level — like a dynamic support-based limit order.",
+
+  "_comment_indicators": "We use 3 indicators, all calculated on the option contract price (not spot). Two SuperTrends with different sensitivity and one SMA.",
   "indicators": [
     {
+      "_comment": "SuperTrend (factor=4, ATR=11) — slower, used to confirm the trend is bullish.",
       "type": "SUPERTREND",
       "name": "opt_st_4_11",
       "price_source": "option",
@@ -10,12 +13,14 @@
       "atr_period": 11
     },
     {
+      "_comment": "Simple Moving Average (13 period) — acts as a trend filter. Price must be above this.",
       "type": "SMA",
       "name": "opt_sma_13",
       "price_source": "option",
       "period": 13
     },
     {
+      "_comment": "SuperTrend (factor=3, ATR=10) — faster/tighter. This is the entry level. We buy when price touches this line.",
       "type": "SUPERTREND",
       "name": "opt_st_3_10",
       "price_source": "option",
@@ -23,37 +28,50 @@
       "atr_period": 10
     }
   ],
+
+  "_comment_signal": "Both conditions must be TRUE (AND logic) to trigger an alert. These are NOT the entry — they just say 'market is bullish, start watching for entry'.",
   "signal_conditions": [
     {
+      "_comment": "Condition 1: Option close price must be ABOVE the 13-period SMA.",
       "indicator": "opt_sma_13",
-      "compare": "price_crosses_above"
+      "compare": "price_above",
+      "price_field": "close"
     },
     {
+      "_comment": "Condition 2: Option close price must be ABOVE the slower SuperTrend (4,11) line.",
       "indicator": "opt_st_4_11_value",
-      "compare": "price_above"
-    },
-    {
-      "indicator": "opt_st_3_10_value",
-      "compare": "price_crosses_below"
+      "compare": "price_above",
+      "price_field": "close"
     }
   ],
   "signal_logic": "AND",
+
+  "_comment_direction": "buy = we are buying options (CE or PE). The system observes ATM strikes of nearest expiry.",
   "direction": "buy",
-  "entry_levels": [
-    {
-      "pct_above_base": 0,
-      "capital_pct": 100.0
-    }
-  ],
+
+  "_comment_entry": "Entry type is 'indicator_level'. Once the signal fires (bullish alert), we place a dynamic limit order at the faster SuperTrend (3,10) value. Entry happens only when price actually touches that level — like buying at support.",
+  "entry": {
+    "type": "indicator_level",
+    "indicator": "opt_st_3_10_value"
+  },
+
+  "_comment_risk": "Stop loss at 5% below entry. Target profit at 7.5% above entry. If neither hits, position is closed at trading_end time (EOD exit).",
   "stop_loss_pct": 5.0,
   "target_pct": 7.5,
+
+  "_comment_session": "Only look for signals between 09:30 and 15:15. Trades are squared off at 15:15 if still open.",
   "trading_start": "09:30",
   "trading_end": "15:15",
   "max_trades_per_day": null,
+
+  "_comment_instruments": "Run this strategy on both NIFTY and SENSEX options.",
   "instruments": [
-    "NIFTY"
+    "NIFTY",
+    "SENSEX"
   ],
+
+  "_comment_backtest": "Backtest period and starting capital for simulation.",
   "backtest_start": "2025-01-01",
-  "backtest_end": "2025-12-31",
+  "backtest_end": "2026-02-25",
   "initial_capital": 200000
 }

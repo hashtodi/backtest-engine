@@ -111,9 +111,10 @@ def run_warmup(data_feed, instrument: str, buffer: PriceBuffer,
                         close = float(row['close'])
                         high = float(row.get('high', close))
                         low = float(row.get('low', close))
+                        open_price = float(row.get('open', close))
                         buffer.fill_option(
                             ts, strike, opt_type, close,
-                            high=high, low=low,
+                            high=high, low=low, open_price=open_price,
                         )
                         bar_count += 1
                         # Track earliest data date

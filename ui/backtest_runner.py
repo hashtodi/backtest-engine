@@ -15,7 +15,7 @@ import config
 from engine.data_loader import load_data, calculate_indicators
 from engine.backtest import BacktestEngine
 from engine import reporter
-from ui.form_config import INDICATOR_PARAMS, NEEDS_VALUE, NEEDS_OTHER, auto_name, get_available_columns
+from ui.form_config import INDICATOR_PARAMS, NEEDS_VALUE, NEEDS_OTHER, NEEDS_PRICE_FIELD, auto_name, get_available_columns
 from ui.strategy_store import (
     save_strategy, get_output_dir, list_saved_strategies,
     load_saved_strategy, render_strategy_description,
@@ -399,6 +399,9 @@ def _load_strategy_into_form(slug: str):
             cond["value"] = sc["value"]
         if "other" in sc:
             cond["other"] = sc["other"]
+        # Restore price field (close/high/low/open) for price-vs-indicator comparisons.
+        if "price_field" in sc:
+            cond["price_field"] = sc["price_field"]
         conditions.append(cond)
     st.session_state.bt_conditions = conditions
 
@@ -416,6 +419,9 @@ def _load_strategy_into_form(slug: str):
         # Other indicator (for crosses_above_indicator, crosses_below_indicator)
         if cond.get("other") and cond["other"] in available:
             st.session_state[f"cond_other_{uid}"] = cond["other"]
+        # Price field (for price_above, price_below, price_crosses_above, etc.)
+        if "price_field" in cond:
+            st.session_state[f"cond_pf_{uid}"] = cond["price_field"]
 
     # Update counter so _next_id("cond") won't collide
     st.session_state["_counter_cond"] = len(st.session_state.bt_conditions)
@@ -423,14 +429,18 @@ def _load_strategy_into_form(slug: str):
     # Signal logic
     st.session_state.bt_logic = strategy.get("signal_logic", "AND")
 
-    # --- Entry levels ---
-    levels = strategy.get("entry_levels", [])
-    if len(levels) == 1 and levels[0].get("pct_above_base", 0) == 0:
-        st.session_state.bt_entry_type = "Direct"
-    else:
+    # --- Entry ---
+    entry = strategy.get("entry", {})
+    entry_type = entry.get("type", "direct")
+
+    if entry_type == "indicator_level":
+        st.session_state.bt_entry_type = "Indicator Level"
+        st.session_state.bt_entry_indicator = entry.get("indicator", "")
+    elif entry_type == "staggered":
         st.session_state.bt_entry_type = "Staggered"
+        levels = entry.get("levels", [])
         st.session_state.bt_entry_levels = [
-            {"id": f"lvl_{i}", "pct": lvl["pct_above_base"], "capital_pct": lvl["capital_pct"]}
+            {"id": f"lvl_{i}", "pct": lvl["pct_from_base"], "capital_pct": lvl["capital_pct"]}
             for i, lvl in enumerate(levels)
         ]
         # Set widget keys for each entry level
@@ -438,9 +448,10 @@ def _load_strategy_into_form(slug: str):
             uid = lvl["id"]
             st.session_state[f"lvl_pct_{uid}"] = float(lvl["pct"])
             st.session_state[f"lvl_cap_{uid}"] = float(lvl["capital_pct"])
-
         # Update counter so _next_id("lvl") won't collide
         st.session_state["_counter_lvl"] = len(st.session_state.bt_entry_levels)
+    else:
+        st.session_state.bt_entry_type = "Direct"
 
     # --- Risk ---
     sl = strategy.get("stop_loss_pct", 20)
@@ -495,16 +506,28 @@ def _build_strategy() -> Dict:
             sc["value"] = cond.get("value", 70.0)
         if cond["compare"] in NEEDS_OTHER:
             sc["other"] = cond.get("other", "")
+        # Save selected price field (close/high/low/open) for price-vs-indicator comparisons.
+        if cond["compare"] in NEEDS_PRICE_FIELD:
+            sc["price_field"] = cond.get("price_field", "close")
         sig_conditions.append(sc)
 
-    # -- Entry levels --
-    if st.session_state.get("bt_entry_type") == "Direct":
-        entry_levels = [{"pct_above_base": 0, "capital_pct": 100.0}]
+    # -- Entry config (modular dict) --
+    entry_type = st.session_state.get("bt_entry_type", "Direct")
+    if entry_type == "Indicator Level":
+        entry_cfg = {
+            "type": "indicator_level",
+            "indicator": st.session_state.get("bt_entry_indicator", ""),
+        }
+    elif entry_type == "Staggered":
+        entry_cfg = {
+            "type": "staggered",
+            "levels": [
+                {"pct_from_base": lvl["pct"], "capital_pct": lvl["capital_pct"]}
+                for lvl in st.session_state.bt_entry_levels
+            ],
+        }
     else:
-        entry_levels = [
-            {"pct_above_base": lvl["pct"], "capital_pct": lvl["capital_pct"]}
-            for lvl in st.session_state.bt_entry_levels
-        ]
+        entry_cfg = {"type": "direct"}
 
     # -- SL/TP: disabled = 9999 (effectively never triggers, only EOD exit) --
     sl = st.session_state.get("bt_sl_pct", 15.0) if st.session_state.get("bt_sl_on") else 9999
@@ -522,14 +545,14 @@ def _build_strategy() -> Dict:
         name = f"Custom {st.session_state.get('bt_direction', 'buy').title()}"
     desc = st.session_state.get("bt_desc", "").strip() or "Custom strategy from UI"
 
-    return {
+    strategy_dict = {
         "name": name,
         "description": desc,
         "indicators": ind_configs,
         "signal_conditions": sig_conditions,
         "signal_logic": st.session_state.get("bt_logic", "AND"),
         "direction": st.session_state.get("bt_direction", "buy"),
-        "entry_levels": entry_levels,
+        "entry": entry_cfg,
         "stop_loss_pct": sl,
         "target_pct": tp,
         "trading_start": start_t.strftime("%H:%M"),
@@ -540,3 +563,5 @@ def _build_strategy() -> Dict:
         "backtest_end": end_d.strftime("%Y-%m-%d"),
         "initial_capital": st.session_state.get("bt_capital", 200000),
     }
+
+    return strategy_dict

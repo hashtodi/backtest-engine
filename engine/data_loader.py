@@ -103,9 +103,12 @@ def calculate_indicators(df: pd.DataFrame, indicator_configs: List[Dict]) -> pd.
         logger.warning("No indicators configured")
         return df
 
-    # Add close_prev per contract (needed for price_crosses_above/below signals).
-    # Must exist before indicator calculations so signal checks can use it.
-    df['close_prev'] = df.groupby(CONTRACT_GROUP_COLS)['close'].shift(1)
+    # Add _prev columns per contract for price field comparisons.
+    # close_prev is needed for price_crosses_above/below signals.
+    # high_prev, low_prev, open_prev enable wick-based crossover detection.
+    for col in ('close', 'high', 'low', 'open'):
+        if col in df.columns:
+            df[f'{col}_prev'] = df.groupby(CONTRACT_GROUP_COLS)[col].shift(1)
 
     # Create indicator instances
     indicators: List[Indicator] = []

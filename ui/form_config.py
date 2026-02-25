@@ -74,6 +74,16 @@ NEEDS_VALUE = {"crosses_above", "crosses_below", "above", "below"}
 # Comparisons that require another indicator column name.
 NEEDS_OTHER = {"crosses_above_indicator", "crosses_below_indicator"}
 
+# Comparisons that compare price against an indicator.
+# These let the user choose which price field (close, high, low, open) to use.
+NEEDS_PRICE_FIELD = {
+    "price_above", "price_below", "price_crosses_above", "price_crosses_below",
+}
+
+# Selectable price fields for price-vs-indicator comparisons.
+# close = candle close, high/low = wicks, open = candle open.
+PRICE_FIELDS = ["close", "high", "low", "open"]
+
 # ============================================
 # PRICE SOURCE OPTIONS
 # ============================================

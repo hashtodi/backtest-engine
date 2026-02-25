@@ -5,12 +5,9 @@
   "signal_conditions": [],
   "signal_logic": "AND",
   "direction": "buy",
-  "entry_levels": [
-    {
-      "pct_above_base": 0,
-      "capital_pct": 100.0
-    }
-  ],
+  "entry": {
+    "type": "direct"
+  },
   "stop_loss_pct": 15.0,
   "target_pct": 10.0,
   "trading_start": "09:30",

@@ -14,7 +14,35 @@ Supports:
   - P&L always based on weighted avg entry price
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
+
+
+def parse_entry_config(strategy: Dict) -> Tuple[List[Dict], Optional[str]]:
+    """
+    Parse the 'entry' dict from a strategy config into internal format.
+
+    New JSON format:
+      "entry": {"type": "direct"}
+      "entry": {"type": "staggered", "levels": [{"pct_from_base": 5, ...}]}
+      "entry": {"type": "indicator_level", "indicator": "opt_st_3_10_value"}
+
+    Returns:
+        (entry_levels_config, entry_indicator)
+        - entry_levels_config: list of dicts for Trade constructor
+        - entry_indicator: indicator column name, or None
+    """
+    entry = strategy.get("entry", {})
+    entry_type = entry.get("type", "direct")
+
+    if entry_type == "indicator_level":
+        levels = [{"pct_from_base": 0, "capital_pct": 100.0}]
+        return levels, entry.get("indicator")
+
+    if entry_type == "staggered":
+        return entry.get("levels", []), None
+
+    # "direct" — single level at base price, 100% capital
+    return [{"pct_from_base": 0, "capital_pct": 100.0}], None
 
 
 # ============================================
@@ -86,7 +114,7 @@ class Trade:
         # For buy: entry triggers when price drops below base (we buy low)
         self.entry_levels: List[EntryLevel] = []
         for i, level_cfg in enumerate(entry_levels_config):
-            pct = level_cfg['pct_above_base']
+            pct = level_cfg['pct_from_base']
             cap_pct = level_cfg['capital_pct']
 
             if direction == 'sell':
@@ -126,6 +154,17 @@ class Trade:
             if not lvl.filled:
                 return lvl
         return None
+
+    def update_entry_target(self, new_price: float):
+        """
+        Update the target price of the next unfilled entry level.
+
+        Used by "Indicator Level" entry type where the limit order price
+        changes each minute as the indicator recalculates.
+        """
+        level = self.get_next_unfilled_level()
+        if level is not None:
+            level.target_price = new_price
 
     def add_entry(self, level: EntryLevel, entry_time, entry_price: float):
         """Fill one entry level."""

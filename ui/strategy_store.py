@@ -188,15 +188,18 @@ def render_strategy_description(strategy: Dict):
             )
 
         # --- Entry ---
-        levels = strategy.get("entry_levels", [])
-        if len(levels) == 1 and levels[0].get("pct_above_base", 0) == 0:
-            st.markdown("**Entry:** Direct (100%)")
-        elif levels:
+        entry = strategy.get("entry", {})
+        etype = entry.get("type", "direct")
+        if etype == "indicator_level":
+            st.markdown(f"**Entry:** Indicator Level ({entry.get('indicator', '?')})")
+        elif etype == "staggered":
             parts = [
-                f"+{lv['pct_above_base']}% ({lv['capital_pct']}%)"
-                for lv in levels
+                f"+{lv['pct_from_base']}% ({lv['capital_pct']}%)"
+                for lv in entry.get("levels", [])
             ]
             st.markdown("**Entry:** Staggered — " + " / ".join(parts))
+        else:
+            st.markdown("**Entry:** Direct (100%)")
 
         # --- Risk ---
         sl = strategy.get("stop_loss_pct", 0)

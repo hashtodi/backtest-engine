@@ -18,6 +18,7 @@ Split into submodules:
   - forward/helpers.py        event builders, timestamp utils
 """
 
+import math
 import time
 import logging
 import threading
@@ -28,7 +29,7 @@ import config
 from indicators import get_indicator
 from indicators.base import Indicator
 from engine.signals import check_signal
-from engine.trade import Trade
+from engine.trade import Trade, parse_entry_config
 from ws_feed import (
     DhanWebSocketFeed, build_instrument_tuple,
     get_option_ws_exchange, EXCHANGE_WS_MAP,
@@ -40,12 +41,13 @@ from forward.price_buffer import PriceBuffer
 from forward.warmup import run_warmup, WARMUP_LOOKBACK_DAYS
 from forward.tick_checker import (
     TickChecker, _check_staggered_entry, _check_exit,
+    check_indicator_entry,
 )
 
 logger = logging.getLogger(__name__)
 
 # Number of strikes above and below ATM to warm up and subscribe via WebSocket.
-WARMUP_STRIKE_RANGE = 10
+WARMUP_STRIKE_RANGE = 20
 
 
 class ForwardTestEngine:
@@ -76,7 +78,8 @@ class ForwardTestEngine:
         self.target_pct = strategy.get("target_pct", 10)
         self.signal_conditions = strategy.get("signal_conditions", [])
         self.signal_logic = strategy.get("signal_logic", "AND")
-        self.entry_levels_config = strategy.get("entry_levels", [])
+        # Entry config: parsed from strategy["entry"] dict
+        self.entry_levels_config, self.entry_indicator = parse_entry_config(strategy)
         self.max_trades_per_day = strategy.get("max_trades_per_day", None)
 
         self.entry_time = datetime.strptime(
@@ -118,6 +121,20 @@ class ForwardTestEngine:
 
         # WebSocket feed (created after warmup if use_websocket=True)
         self._ws_feed: Optional[DhanWebSocketFeed] = None
+
+        # Cached indicator rows from last run_one_minute().
+        # Used by tick-level signal checking so we don't recalculate
+        # indicators every second — only the live price changes.
+        self._cached_indicator_rows: Dict[str, dict] = {}
+
+        # Previous tick LTP per option type, for crossover detection
+        # between consecutive ticks.
+        self._prev_tick_ltp: Dict[str, float] = {}
+
+        # Previous tick LTP per option type for indicator-level entry.
+        # Tracks the last LTP seen so we can detect when price crosses
+        # through the indicator level between two ticks.
+        self._prev_entry_ltp: Dict[str, float] = {}
 
         # Tick-level checker (created after init, uses self._get_ws_option_ltp)
         self._tick_checker = TickChecker(
@@ -275,7 +292,12 @@ class ForwardTestEngine:
         row["close"] = latest["close"]
         row["close_prev"] = prev_bar["close"] if prev_bar else latest["close"]
         row["high"] = latest["high"]
+        row["high_prev"] = prev_bar["high"] if prev_bar else latest["high"]
         row["low"] = latest["low"]
+        row["low_prev"] = prev_bar["low"] if prev_bar else latest["low"]
+        row["open"] = latest.get("open", latest["close"])
+        row["open_prev"] = (prev_bar.get("open", prev_bar["close"])
+                            if prev_bar else latest.get("open", latest["close"]))
         row["strike"] = self._atm_strike
         row["option_type"] = option_type
         row["moneyness"] = "ATM"
@@ -371,9 +393,17 @@ class ForwardTestEngine:
         ltp_str = f"{trade_ltp:.2f}" if trade_ltp is not None else "--"
 
         if trade.status == "WAITING_ENTRY":
-            next_lvl = trade.get_next_unfilled_level()
-            lvl_str = (f"waiting L{next_lvl.level_num}={next_lvl.target_price:.2f}"
-                       if next_lvl else "waiting")
+            if self.entry_indicator:
+                # Show the cached indicator value as the limit level
+                cached_row = self._cached_indicator_rows.get(opt_type, {})
+                ind_val = cached_row.get(self.entry_indicator)
+                lvl_str = (f"waiting limit={ind_val:.2f}"
+                           if ind_val is not None and not math.isnan(ind_val)
+                           else "waiting limit=NaN")
+            else:
+                next_lvl = trade.get_next_unfilled_level()
+                lvl_str = (f"waiting L{next_lvl.level_num}={next_lvl.target_price:.2f}"
+                           if next_lvl else "waiting")
             return (
                 f"observing {strike} {opt_type} | "
                 f"close={ltp_str} | {lvl_str}"
@@ -630,15 +660,16 @@ class ForwardTestEngine:
             if ltp is None:
                 continue
             sec_id = prices.get(sid_key)
-            candle_high, candle_low = None, None
+            candle_high, candle_low, candle_open = None, None, None
             if sec_id and self._ws_feed:
                 candle = self._ws_feed.candles.get_completed_candle(sec_id)
                 if candle:
                     candle_high = candle.get("high")
                     candle_low = candle.get("low")
+                    candle_open = candle.get("open")
             self.buffer.add_option(
                 now, atm_strike, opt_type, ltp,
-                high=candle_high, low=candle_low,
+                high=candle_high, low=candle_low, open_price=candle_open,
             )
 
         # --- Calculate indicator rows for both option types ---
@@ -647,6 +678,11 @@ class ForwardTestEngine:
                               ("PE", prices["pe_ltp"])]:
             if ltp is not None:
                 indicator_rows[opt_type] = self._calc_indicator_row(opt_type)
+
+        # Cache indicator rows for tick-level signal checking.
+        # Tick checks reuse these cached values (indicators don't change intra-minute)
+        # and overlay the live LTP as the price.
+        self._cached_indicator_rows = dict(indicator_rows)
 
         # --- Resolve trade-specific LTPs ---
         trade_ltps: Dict[str, Optional[float]] = {}
@@ -702,10 +738,19 @@ class ForwardTestEngine:
                         trade_ltp = atm_ltp
                         trade_ltps[opt_type] = atm_ltp
 
-                        levels_str = " ".join(
-                            f"L{lvl.level_num}={lvl.target_price:.2f}"
-                            for lvl in trade.entry_levels
-                        )
+                        if self.entry_indicator:
+                            ind_val = row.get(self.entry_indicator)
+                            entry_info = (
+                                f"entry_indicator={self.entry_indicator}"
+                                f"({ind_val:.2f})" if ind_val is not None
+                                and not math.isnan(ind_val)
+                                else f"entry_indicator={self.entry_indicator}(NaN)"
+                            )
+                        else:
+                            entry_info = " ".join(
+                                f"L{lvl.level_num}={lvl.target_price:.2f}"
+                                for lvl in trade.entry_levels
+                            )
                         if self.direction == "sell":
                             sl_ref = atm_ltp * (1 + self.stop_loss_pct / 100)
                             tp_ref = atm_ltp * (1 - self.target_pct / 100)
@@ -716,7 +761,7 @@ class ForwardTestEngine:
                             "signal",
                             f"{opt_type} SIGNAL: {reason} | "
                             f"{atm_strike} {opt_type} | "
-                            f"base={atm_ltp:.2f} | {levels_str} | "
+                            f"base={atm_ltp:.2f} | {entry_info} | "
                             f"SL~{sl_ref:.2f} TP~{tp_ref:.2f}",
                             option_type=opt_type,
                         ))
@@ -731,13 +776,30 @@ class ForwardTestEngine:
                             except Exception:
                                 pass
 
-            # --- STAGGERED ENTRY (use shared function) ---
+            # --- ENTRY CHECK (staggered or indicator level) ---
             if (not is_exit_time and active is not None
                     and active.status in ("WAITING_ENTRY", "PARTIAL_POSITION")
                     and trade_ltp is not None):
-                entry_events = _check_staggered_entry(
-                    active, trade_ltp, now, self.direction
-                )
+
+                if self.entry_indicator:
+                    # Indicator Level: get current indicator value from row,
+                    # check if candle-level LTP range touched it.
+                    ind_val = row.get(self.entry_indicator) if row else None
+                    if ind_val is not None and not math.isnan(ind_val):
+                        prev_ltp = self._prev_entry_ltp.get(opt_type, trade_ltp)
+                        entry_events = check_indicator_entry(
+                            active, prev_ltp, trade_ltp,
+                            ind_val, now, self.direction,
+                        )
+                    else:
+                        entry_events = []
+                    # Always track prev LTP for next tick-level check
+                    self._prev_entry_ltp[opt_type] = trade_ltp
+                else:
+                    entry_events = _check_staggered_entry(
+                        active, trade_ltp, now, self.direction
+                    )
+
                 for msg in entry_events:
                     events.append(make_event(
                         "entry", f"{opt_type} {msg}", option_type=opt_type
@@ -830,6 +892,205 @@ class ForwardTestEngine:
         return events
 
     # ------------------------------------------
+    # TICK-LEVEL SIGNAL CHECKING
+    # ------------------------------------------
+    def _check_tick_signals(self) -> List[dict]:
+        """
+        Check signals using live tick LTP + cached indicator values.
+
+        Called every ~1 second between minute boundaries.
+        Indicators stay fixed (from last run_one_minute); only price changes.
+        This lets price-vs-indicator signals fire mid-candle instead of
+        waiting for the next minute boundary.
+        """
+        events: List[dict] = []
+        now = datetime.now(IST)
+
+        # Skip if no cached indicators yet (first minute hasn't run)
+        if not self._cached_indicator_rows:
+            return events
+
+        # Skip if no WebSocket feed (can't get live ticks)
+        if not self._ws_feed or not self._ws_feed.is_connected:
+            return events
+
+        # Skip during exit time
+        if now.time() >= self.exit_time:
+            return events
+
+        # Day trade limit
+        day_limit_hit = (
+            self.max_trades_per_day is not None
+            and self.day_trade_count >= self.max_trades_per_day
+        )
+        if day_limit_hit:
+            return events
+
+        atm_strike = self._atm_strike
+        if atm_strike is None:
+            return events
+
+        for opt_type in ("CE", "PE"):
+            active = self.active_ce if opt_type == "CE" else self.active_pe
+            if active is not None:
+                continue  # trade already active for this type
+
+            cached_row = self._cached_indicator_rows.get(opt_type)
+            if not cached_row:
+                continue
+
+            # Get live LTP from WebSocket
+            ltp = self._get_ws_option_ltp(atm_strike, opt_type)
+            if ltp is None:
+                continue
+
+            # Build a signal-check row: live price + cached indicators.
+            # Overlay price fields with live tick values.
+            row = dict(cached_row)
+            prev_ltp = self._prev_tick_ltp.get(opt_type, ltp)
+            row["close"] = ltp
+            row["close_prev"] = prev_ltp
+            # For high/low/open at tick level, use LTP as the "current" value
+            # since we don't have intra-second OHLC. Prev values stay from cache.
+            row["high"] = ltp
+            row["low"] = ltp
+            row["open"] = ltp
+            row["high_prev"] = prev_ltp
+            row["low_prev"] = prev_ltp
+            row["open_prev"] = prev_ltp
+
+            # Update prev tick LTP for next check
+            self._prev_tick_ltp[opt_type] = ltp
+
+            # Run signal conditions
+            fired, reason = check_signal(
+                row, self.signal_conditions, self.signal_logic
+            )
+            if not fired:
+                continue
+
+            # Signal fired on tick — create trade
+            trade = Trade(
+                signal_time=now,
+                base_price=ltp,
+                option_type=opt_type,
+                strike=atm_strike,
+                expiry_type="WEEK",
+                expiry_code=1,
+                instrument=self.instrument,
+                direction=self.direction,
+                entry_levels_config=self.entry_levels_config,
+                lot_size=self.lot_size,
+            )
+
+            if opt_type == "CE":
+                self.active_ce = trade
+            else:
+                self.active_pe = trade
+
+            self.day_trade_count += 1
+
+            if self.entry_indicator:
+                ind_val = cached_row.get(self.entry_indicator)
+                entry_info = (
+                    f"entry_indicator={self.entry_indicator}"
+                    f"({ind_val:.2f})" if ind_val is not None
+                    and not math.isnan(ind_val)
+                    else f"entry_indicator={self.entry_indicator}(NaN)"
+                )
+            else:
+                entry_info = " ".join(
+                    f"L{lvl.level_num}={lvl.target_price:.2f}"
+                    for lvl in trade.entry_levels
+                )
+            if self.direction == "sell":
+                sl_ref = ltp * (1 + self.stop_loss_pct / 100)
+                tp_ref = ltp * (1 - self.target_pct / 100)
+            else:
+                sl_ref = ltp * (1 - self.stop_loss_pct / 100)
+                tp_ref = ltp * (1 + self.target_pct / 100)
+
+            events.append(make_event(
+                "signal",
+                f"[TICK] {opt_type} SIGNAL: {reason} | "
+                f"{atm_strike} {opt_type} | "
+                f"base={ltp:.2f} | {entry_info} | "
+                f"SL~{sl_ref:.2f} TP~{tp_ref:.2f}",
+                option_type=opt_type,
+            ))
+
+            if self.telegram:
+                try:
+                    self.telegram.send_message(
+                        f"<b>SIGNAL [TICK]</b> {self.instrument} "
+                        f"{atm_strike} {opt_type}\n"
+                        f"{reason}\nBase: {ltp:.2f}"
+                    )
+                except Exception:
+                    pass
+
+        return events
+
+    def _check_tick_indicator_entry(self, _emit: Callable):
+        """
+        Tick-level indicator entry check.
+
+        For each active trade in WAITING_ENTRY, check if the live tick LTP
+        crossed through the cached indicator value since the last tick.
+        Uses: min(prev_ltp, curr_ltp) <= indicator_value <= max(prev_ltp, curr_ltp)
+        """
+        if not self._ws_feed or not self._ws_feed.is_connected:
+            return
+        if not self._cached_indicator_rows:
+            return
+
+        now = datetime.now(IST)
+        if now.time() >= self.exit_time:
+            return
+
+        for opt_type in ("CE", "PE"):
+            active = self.active_ce if opt_type == "CE" else self.active_pe
+            if active is None or active.status != "WAITING_ENTRY":
+                continue
+
+            # Get live LTP for the trade's specific contract
+            ltp = self._get_ws_option_ltp(active.strike, opt_type)
+            if ltp is None:
+                continue
+
+            # Get cached indicator value
+            cached_row = self._cached_indicator_rows.get(opt_type, {})
+            ind_val = cached_row.get(self.entry_indicator)
+            if ind_val is None or math.isnan(ind_val):
+                self._prev_entry_ltp[opt_type] = ltp
+                continue
+
+            prev_ltp = self._prev_entry_ltp.get(opt_type, ltp)
+
+            # Check if price crossed through the indicator level
+            entry_events = check_indicator_entry(
+                active, prev_ltp, ltp, ind_val, now, self.direction
+            )
+
+            # Update prev LTP for next tick
+            self._prev_entry_ltp[opt_type] = ltp
+
+            for msg in entry_events:
+                _emit(make_event(
+                    "entry",
+                    f"[TICK] {opt_type} {msg}",
+                    option_type=opt_type,
+                ))
+                if self.telegram:
+                    try:
+                        self.telegram.send_message(
+                            f"<b>ENTRY [TICK]</b> {self.instrument} "
+                            f"{opt_type}\n{msg}"
+                        )
+                    except Exception:
+                        pass
+
+    # ------------------------------------------
     # EOD CLOSE (safety net)
     # ------------------------------------------
     def _eod_close_all(self) -> List[dict]:
@@ -894,18 +1155,9 @@ class ForwardTestEngine:
             if on_event:
                 on_event(ev)
 
-        # Bail out immediately if market is already closed for today
-        now = datetime.now(IST)
-        if now.time() > self.exit_time:
-            _emit(make_event(
-                "error",
-                f"Market already closed (now={now.strftime('%H:%M')}, "
-                f"exit_time={self.exit_time}). "
-                f"Nothing to do. Start before {self.exit_time} tomorrow."
-            ))
-            return
-
         # Wait until market open (before entry_time)
+        # Note: the runner already waits for market hours, but this handles
+        # the case where engine is used directly (e.g. from Streamlit UI)
         while not stop_event.is_set():
             now = datetime.now(IST)
             if now.time() >= self.entry_time:
@@ -1044,7 +1296,23 @@ class ForwardTestEngine:
                     stop_event.wait(timeout=backoff)
                     continue
 
-            # --- TICK-LEVEL: fast entry/SL/TP check ---
+            # --- TICK-LEVEL: signal check + entry/SL/TP check ---
+            # 1. Check signals on live ticks (uses cached indicators + live LTP)
+            try:
+                signal_events = self._check_tick_signals()
+                for ev in signal_events:
+                    _emit(ev)
+            except Exception as e:
+                logger.debug(f"Tick signal check error (non-fatal): {e}")
+
+            # 2. Indicator-level entry on live ticks
+            if self.entry_indicator:
+                try:
+                    self._check_tick_indicator_entry(_emit)
+                except Exception as e:
+                    logger.debug(f"Tick indicator entry error (non-fatal): {e}")
+
+            # 3. Check staggered entry and SL/TP on live ticks
             try:
                 tick_events = self._tick_checker.check(
                     self.active_ce, self.active_pe, self._ws_feed,
