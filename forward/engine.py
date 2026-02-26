@@ -660,15 +660,21 @@ class ForwardTestEngine:
             if ltp is None:
                 continue
             sec_id = prices.get(sid_key)
-            candle_high, candle_low, candle_open = None, None, None
+            candle_high, candle_low, candle_open, candle_close = None, None, None, None
             if sec_id and self._ws_feed:
                 candle = self._ws_feed.candles.get_completed_candle(sec_id)
                 if candle:
                     candle_high = candle.get("high")
                     candle_low = candle.get("low")
                     candle_open = candle.get("open")
+                    candle_close = candle.get("close")
+            # Use the completed candle's close for the buffer bar.
+            # This is the true last tick of the previous minute (matches
+            # TradingView candle close). Fall back to live LTP if no
+            # completed candle is available (REST fallback, first minute).
+            bar_close = candle_close if candle_close is not None else ltp
             self.buffer.add_option(
-                now, atm_strike, opt_type, ltp,
+                now, atm_strike, opt_type, bar_close,
                 high=candle_high, low=candle_low, open_price=candle_open,
             )
 

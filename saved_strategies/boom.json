@@ -1,6 +1,6 @@
 {
-  "name": "supertrend - booming bulls",
-  "description": "Buy CE/PE options when price is in a bullish zone (above SMA 13 and SuperTrend 4,11). Entry happens at the SuperTrend 3,10 level \u2014 like a dynamic support-based limit order.",
+  "name": "BOOM",
+  "description": "Custom strategy from UI",
   "indicators": [
     {
       "type": "SUPERTREND",
@@ -33,6 +33,11 @@
       "indicator": "opt_st_4_11_value",
       "compare": "price_above",
       "price_field": "close"
+    },
+    {
+      "indicator": "opt_st_3_10_value",
+      "compare": "price_above",
+      "price_field": "close"
     }
   ],
   "signal_logic": "AND",
@@ -47,9 +52,9 @@
   "trading_end": "15:15",
   "max_trades_per_day": null,
   "instruments": [
-    "SENSEX"
+    "NIFTY"
   ],
-  "backtest_start": "2026-02-24",
+  "backtest_start": "2025-01-01",
   "backtest_end": "2026-02-26",
   "initial_capital": 200000
 }
