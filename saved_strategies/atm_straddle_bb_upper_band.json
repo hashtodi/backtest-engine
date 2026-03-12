@@ -1,0 +1,39 @@
+{
+  "name": "Atm straddle bb upper band",
+  "description": "Custom strategy from UI",
+  "indicators": [
+    {
+      "type": "BOLLINGER",
+      "name": "straddle_bb_20_2",
+      "price_source": "straddle",
+      "period": 20,
+      "std_dev": 2.0
+    }
+  ],
+  "signal_conditions": [
+    {
+      "indicator": "straddle_bb_20_2_upper",
+      "compare": "price_crosses_above",
+      "price_field": "straddle_close"
+    }
+  ],
+  "signal_logic": "AND",
+  "direction": "sell",
+  "trade_mode": "straddle",
+  "expiry_mode": "monthly",
+  "entry": {
+    "type": "direct"
+  },
+  "stop_loss_pct": 2.5,
+  "target_pct": 1.0,
+  "trading_start": "09:30",
+  "trading_end": "14:45",
+  "max_trades_per_day": null,
+  "max_sl_per_day": 3,
+  "instruments": [
+    "NIFTY"
+  ],
+  "backtest_start": "2026-02-10",
+  "backtest_end": "2026-03-11",
+  "initial_capital": 500000
+}

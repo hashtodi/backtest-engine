@@ -17,7 +17,7 @@ import pandas as pd
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from engine.trade import Trade
+from engine.trade import Trade, StraddleTrade
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +71,10 @@ def generate_report(
     wins_df = trades_df[trades_df['money_pnl'] > 0]
     loss_df = trades_df[trades_df['money_pnl'] < 0]
 
+    # Straddle trades have option_type='STRADDLE'; count them separately
+    straddle_trades = len(trades_df[trades_df['option_type'] == 'STRADDLE'])
+    is_straddle = straddle_trades > 0
+
     report = {
         'instrument': instrument,
         'lot_size': lot_size,
@@ -93,8 +97,11 @@ def generate_report(
         'exit_reasons': trades_df['exit_reason'].value_counts().to_dict(),
         'ce_trades': len(trades_df[trades_df['option_type'] == 'CE']),
         'pe_trades': len(trades_df[trades_df['option_type'] == 'PE']),
+        'straddle_trades': straddle_trades,
         'ce_pnl': trades_df[trades_df['option_type'] == 'CE']['money_pnl'].sum(),
         'pe_pnl': trades_df[trades_df['option_type'] == 'PE']['money_pnl'].sum(),
+        'straddle_pnl': trades_df[trades_df['option_type'] == 'STRADDLE']['money_pnl'].sum(),
+        'is_straddle': is_straddle,
         # Entry level fill stats (dynamic based on total_levels)
         'avg_parts': trades_df['parts_filled'].mean(),
         'parts_counts': trades_df['parts_filled'].value_counts().sort_index().to_dict(),
@@ -150,8 +157,12 @@ def print_report(report: Dict, strategy_name: str = ""):
         print(f"    {reason:20} {count:>4} ({pct:.1f}%)")
     print("-" * 60)
 
-    print(f"  CE: {r['ce_trades']} trades | P&L: Rs {r['ce_pnl']:,.2f}")
-    print(f"  PE: {r['pe_trades']} trades | P&L: Rs {r['pe_pnl']:,.2f}")
+    if r.get('is_straddle'):
+        print(f"  Straddle: {r['straddle_trades']} trades | "
+              f"P&L: Rs {r['straddle_pnl']:,.2f}")
+    else:
+        print(f"  CE: {r['ce_trades']} trades | P&L: Rs {r['ce_pnl']:,.2f}")
+        print(f"  PE: {r['pe_trades']} trades | P&L: Rs {r['pe_pnl']:,.2f}")
     print("=" * 60)
 
 
@@ -328,7 +339,10 @@ def write_summary(
                 f"(exact fill assumed)\n")
         f.write(f"- **Hours**: {strategy_config.get('trading_start', '09:30')} - "
                 f"{strategy_config.get('trading_end', '14:30')} IST\n")
-        f.write("- **Expiry**: Nearest weekly (expiry_code = 1)\n")
+        expiry_mode = strategy_config.get('expiry_mode', 'weekly')
+        trade_mode = strategy_config.get('trade_mode', 'single_leg')
+        f.write(f"- **Expiry**: {expiry_mode.title()}\n")
+        f.write(f"- **Trade Mode**: {trade_mode.replace('_', ' ').title()}\n")
         f.write("- **Strikes**: ATM only\n")
         f.write("- **Intraday**: Signals expire at EOD, positions force-closed at EOD\n\n")
 
@@ -403,13 +417,21 @@ def write_summary(
             f.write("\n")
 
             # Option type split
-            f.write("### By Option Type\n\n")
-            f.write("| Type | Trades | Money P&L |\n")
-            f.write("|------|--------|----------|\n")
-            f.write(f"| CE | {len(ce_df)} | "
-                    f"Rs {ce_df['money_pnl'].sum():,.2f} |\n")
-            f.write(f"| PE | {len(pe_df)} | "
-                    f"Rs {pe_df['money_pnl'].sum():,.2f} |\n\n")
+            straddle_df = trades_df[trades_df['option_type'] == 'STRADDLE']
+            if len(straddle_df) > 0:
+                f.write("### Trade Type\n\n")
+                f.write("| Type | Trades | Money P&L |\n")
+                f.write("|------|--------|----------|\n")
+                f.write(f"| Straddle | {len(straddle_df)} | "
+                        f"Rs {straddle_df['money_pnl'].sum():,.2f} |\n\n")
+            else:
+                f.write("### By Option Type\n\n")
+                f.write("| Type | Trades | Money P&L |\n")
+                f.write("|------|--------|----------|\n")
+                f.write(f"| CE | {len(ce_df)} | "
+                        f"Rs {ce_df['money_pnl'].sum():,.2f} |\n")
+                f.write(f"| PE | {len(pe_df)} | "
+                        f"Rs {pe_df['money_pnl'].sum():,.2f} |\n\n")
 
             # Entry fill breakdown
             f.write("### Entry Fill Breakdown\n\n")

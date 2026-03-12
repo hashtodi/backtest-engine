@@ -17,6 +17,12 @@ Comparison types:
   (close, high, low, open) to compare. Defaults to "close".
   - crosses_above_indicator: one indicator crosses above another
   - crosses_below_indicator: one indicator crosses below another
+
+Optional field for price_* comparisons:
+  - pct_offset: shift the indicator threshold by this %.
+    e.g. pct_offset=2.5 on price_crosses_above means
+    "price crosses above indicator * 1.025" (2.5% above the band).
+    Defaults to 0 (no offset, backward-compatible).
 """
 
 import pandas as pd
@@ -52,8 +58,14 @@ def check_condition(row, condition: Dict) -> Tuple[bool, str]:
         price = row.get(pf)
         if pd.isna(price) or pd.isna(curr):
             return False, f"{pf} or {ind_name}=NaN"
-        met = price > curr
-        desc = f"{pf} above {ind_name} ({price:.2f} > {curr:.2f})" if met else ""
+        # pct_offset shifts the threshold: 2.5 means "2.5% above indicator"
+        offset = condition.get('pct_offset', 0)
+        threshold = curr * (1 + offset / 100)
+        met = price > threshold
+        if offset:
+            desc = f"{pf} above {ind_name}+{offset}% ({price:.2f} > {threshold:.2f})" if met else ""
+        else:
+            desc = f"{pf} above {ind_name} ({price:.2f} > {curr:.2f})" if met else ""
         return met, desc
 
     elif compare == 'price_below':
@@ -61,8 +73,14 @@ def check_condition(row, condition: Dict) -> Tuple[bool, str]:
         price = row.get(pf)
         if pd.isna(price) or pd.isna(curr):
             return False, f"{pf} or {ind_name}=NaN"
-        met = price < curr
-        desc = f"{pf} below {ind_name} ({price:.2f} < {curr:.2f})" if met else ""
+        # pct_offset shifts the threshold: 2.5 means "2.5% below indicator"
+        offset = condition.get('pct_offset', 0)
+        threshold = curr * (1 - offset / 100)
+        met = price < threshold
+        if offset:
+            desc = f"{pf} below {ind_name}-{offset}% ({price:.2f} < {threshold:.2f})" if met else ""
+        else:
+            desc = f"{pf} below {ind_name} ({price:.2f} < {curr:.2f})" if met else ""
         return met, desc
 
     # Skip if indicator values are NaN (warmup period).
@@ -103,26 +121,41 @@ def check_condition(row, condition: Dict) -> Tuple[bool, str]:
     # --- Price vs indicator crossover comparisons ---
 
     elif compare == 'price_crosses_above':
-        # Price crosses above the indicator line.
-        # Uses price_field (close/high/low/open) and its _prev counterpart.
+        # Price crosses above the indicator line (with optional % offset).
+        # pct_offset=2.5 means "price crosses above indicator * 1.025".
         pf = condition.get('price_field', 'close')
         price = row.get(pf)
         price_prev = row.get(f'{pf}_prev', price)
         if pd.isna(price):
             return False, f"{pf}=NaN"
-        met = price_prev <= prev and price > curr
-        desc = f"{pf} crossed above {ind_name} ({price:.2f} > {curr:.2f})" if met else ""
+        offset = condition.get('pct_offset', 0)
+        threshold = curr * (1 + offset / 100)
+        threshold_prev = prev * (1 + offset / 100)
+        met = price_prev <= threshold_prev and price > threshold
+        if offset:
+            desc = (f"{pf} crossed above {ind_name}+{offset}% "
+                    f"({price:.2f} > {threshold:.2f})") if met else ""
+        else:
+            desc = f"{pf} crossed above {ind_name} ({price:.2f} > {curr:.2f})" if met else ""
         return met, desc
 
     elif compare == 'price_crosses_below':
-        # Price crosses below the indicator line.
+        # Price crosses below the indicator line (with optional % offset).
+        # pct_offset=2.5 means "price crosses below indicator * 0.975".
         pf = condition.get('price_field', 'close')
         price = row.get(pf)
         price_prev = row.get(f'{pf}_prev', price)
         if pd.isna(price):
             return False, f"{pf}=NaN"
-        met = price_prev >= prev and price < curr
-        desc = f"{pf} crossed below {ind_name} ({price:.2f} < {curr:.2f})" if met else ""
+        offset = condition.get('pct_offset', 0)
+        threshold = curr * (1 - offset / 100)
+        threshold_prev = prev * (1 - offset / 100)
+        met = price_prev >= threshold_prev and price < threshold
+        if offset:
+            desc = (f"{pf} crossed below {ind_name}-{offset}% "
+                    f"({price:.2f} < {threshold:.2f})") if met else ""
+        else:
+            desc = f"{pf} crossed below {ind_name} ({price:.2f} < {curr:.2f})" if met else ""
         return met, desc
 
     # --- Indicator vs indicator comparisons ---

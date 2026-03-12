@@ -76,21 +76,28 @@ NEEDS_OTHER = {"crosses_above_indicator", "crosses_below_indicator"}
 
 # Comparisons that compare price against an indicator.
 # These let the user choose which price field (close, high, low, open) to use.
+# They also accept an optional pct_offset (default 0) to shift the threshold.
+# e.g. pct_offset=2.5 on price_crosses_above → price crosses indicator * 1.025.
 NEEDS_PRICE_FIELD = {
     "price_above", "price_below", "price_crosses_above", "price_crosses_below",
 }
 
+# Comparisons that support an optional pct_offset (% shift on indicator value).
+SUPPORTS_PCT_OFFSET = NEEDS_PRICE_FIELD
+
 # Selectable price fields for price-vs-indicator comparisons.
 # close = candle close, high/low = wicks, open = candle open.
-PRICE_FIELDS = ["close", "high", "low", "open"]
+# straddle_close = ATM CE close + PE close (for straddle strategies).
+PRICE_FIELDS = ["close", "high", "low", "open", "straddle_close"]
 
 # ============================================
 # PRICE SOURCE OPTIONS
 # ============================================
 
-# "spot"   = calculate on underlying/spot price (shared across all contracts, no expiry reset)
-# "option" = calculate on option close price (per contract, resets on new expiry)
-PRICE_SOURCES = ["spot", "option"]
+# "spot"     = calculate on underlying/spot price (shared across all contracts, no expiry reset)
+# "option"   = calculate on option close price (per contract, resets on new expiry)
+# "straddle" = calculate on ATM CE+PE combined close (shared, for straddle strategies)
+PRICE_SOURCES = ["spot", "option", "straddle"]
 
 
 # ============================================
@@ -102,13 +109,19 @@ def auto_name(ind: dict) -> str:
     Generate a readable column name from an indicator config.
 
     Prefix based on price source:
-      spot_  = indicator on underlying price (e.g., spot_rsi_14)
-      opt_   = indicator on option close price (e.g., opt_rsi_14)
+      spot_     = indicator on underlying price (e.g., spot_rsi_14)
+      opt_      = indicator on option close price (e.g., opt_rsi_14)
+      straddle_ = indicator on ATM CE+PE combined price (e.g., straddle_bb_20_2)
     """
     t = ind["type"]
-    # Prefix: "spot_" or "opt_" based on price source
+    # Prefix based on price source
     ps = ind.get("price_source", "option")
-    prefix = "spot" if ps == "spot" else "opt"
+    if ps == "spot":
+        prefix = "spot"
+    elif ps == "straddle":
+        prefix = "straddle"
+    else:
+        prefix = "opt"
 
     if t == "MACD":
         return f"{prefix}_macd_{ind.get('fast', 12)}_{ind.get('slow', 26)}_{ind.get('signal', 9)}"

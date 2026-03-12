@@ -1,0 +1,37 @@
+{
+  "name": "bb breakout",
+  "description": "Enter when option close crosses 2.5% above BB upper band. TP 7.5%, SL 4%.",
+  "indicators": [
+    {
+      "type": "BOLLINGER",
+      "name": "opt_bb_20_2",
+      "price_source": "option",
+      "period": 20,
+      "std_dev": 2.0
+    }
+  ],
+  "signal_conditions": [
+    {
+      "indicator": "opt_bb_20_2_upper",
+      "compare": "price_crosses_above",
+      "price_field": "close",
+      "pct_offset": 2.5
+    }
+  ],
+  "signal_logic": "AND",
+  "direction": "buy",
+  "entry": {
+    "type": "direct"
+  },
+  "stop_loss_pct": 5.0,
+  "target_pct": 7.5,
+  "trading_start": "09:30",
+  "trading_end": "15:00",
+  "max_trades_per_day": null,
+  "instruments": [
+    "NIFTY"
+  ],
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2026-03-05",
+  "initial_capital": 200000
+}

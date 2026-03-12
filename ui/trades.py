@@ -31,9 +31,9 @@ def _load_results_from_output(strategy: dict, inst: str) -> pd.DataFrame:
         return pd.DataFrame()
     df = pd.read_csv(csv_path)
     if 'signal_time' in df.columns:
-        df['signal_time'] = pd.to_datetime(df['signal_time'])
+        df['signal_time'] = pd.to_datetime(df['signal_time'], format='mixed')
     if 'exit_time' in df.columns:
-        df['exit_time'] = pd.to_datetime(df['exit_time'])
+        df['exit_time'] = pd.to_datetime(df['exit_time'], format='mixed')
     return df
 
 

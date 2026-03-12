@@ -1,11 +1,17 @@
 """
 Trade and PositionPart classes.
 
-A Trade represents a complete trade cycle:
+A Trade represents a complete single-leg trade cycle:
   1. Signal fires -> base_price set, observation starts
   2. Entry levels calculated from strategy config
   3. Parts filled as price reaches each level (same day only)
   4. Exit on SL / TP / EOD
+
+A StraddleTrade represents a combined CE+PE straddle trade:
+  1. Signal fires on combined straddle price (CE close + PE close)
+  2. Both ATM CE and PE are sold (or bought) simultaneously
+  3. SL/TP tracked on combined straddle price
+  4. Both legs exit together
 
 Supports:
   - Variable number of staggered entry levels
@@ -128,6 +134,7 @@ class Trade:
 
         # Parts tracking (filled entries)
         self.parts: List[PositionPart] = []
+        self.last_entry_time = None  # candle when latest part was filled
 
         # Exit info
         self.exit_time = None
@@ -171,6 +178,11 @@ class Trade:
         part = PositionPart(level.level_num, entry_time, entry_price, level.capital_pct)
         self.parts.append(part)
         level.filled = True
+
+        # Track the candle where the latest part was filled.
+        # Exit checks should skip this candle because entry is at close
+        # and the candle's high/low happened before the close.
+        self.last_entry_time = entry_time
 
         # Update status
         all_filled = all(lvl.filled for lvl in self.entry_levels)
@@ -256,3 +268,133 @@ class Trade:
             d[f'part_{i+1}_price'] = part.entry_price
 
         return d
+
+
+# ============================================
+# STRADDLE TRADE (combined CE + PE)
+# ============================================
+class StraddleTrade:
+    """
+    A combined straddle trade that sells (or buys) both ATM CE and PE together.
+
+    Lifecycle:
+      1. Signal fires on combined straddle price (CE close + PE close)
+      2. Both legs enter simultaneously at their individual ATM prices
+      3. SL/TP tracked on combined straddle price
+      4. Both legs exit together
+
+    P&L = (CE entry - CE exit) + (PE entry - PE exit) for sell direction.
+    """
+
+    def __init__(
+        self,
+        signal_time,
+        ce_strike: float,
+        pe_strike: float,
+        ce_entry_price: float,
+        pe_entry_price: float,
+        expiry_type: str,
+        expiry_code: int,
+        instrument: str,
+        direction: str,
+        lot_size: int,
+    ):
+        self.signal_time = signal_time
+        self.instrument = instrument
+        self.direction = direction  # "sell" or "buy"
+        self.lot_size = lot_size
+        self.expiry_type = expiry_type
+        self.expiry_code = expiry_code
+
+        # CE leg
+        self.ce_strike = ce_strike
+        self.ce_entry_price = ce_entry_price
+        self.ce_exit_price: Optional[float] = None
+
+        # PE leg
+        self.pe_strike = pe_strike
+        self.pe_entry_price = pe_entry_price
+        self.pe_exit_price: Optional[float] = None
+
+        # Combined straddle entry = CE + PE
+        self.straddle_entry = ce_entry_price + pe_entry_price
+
+        # Entry time (same candle for both legs)
+        self.entry_time = signal_time
+        self.last_entry_time = signal_time
+
+        # Exit info
+        self.exit_time = None
+        self.exit_reason = None
+        self.status = 'FULL_POSITION'
+
+        # P&L (set on close)
+        self.total_pnl = 0.0
+        self.total_pnl_pct = 0.0
+
+    def has_position(self) -> bool:
+        """Always True once created (both legs enter immediately)."""
+        return self.status in ('FULL_POSITION',)
+
+    def close_trade(self, exit_time, ce_exit: float, pe_exit: float, exit_reason: str):
+        """
+        Close both legs of the straddle.
+
+        For sell: profit = entry - exit (profit when premium drops).
+        For buy:  profit = exit - entry (profit when premium rises).
+        """
+        self.exit_time = exit_time
+        self.ce_exit_price = ce_exit
+        self.pe_exit_price = pe_exit
+        self.exit_reason = exit_reason
+        self.status = 'CLOSED'
+
+        straddle_exit = ce_exit + pe_exit
+        if self.direction == 'sell':
+            self.total_pnl = self.straddle_entry - straddle_exit
+        else:
+            self.total_pnl = straddle_exit - self.straddle_entry
+
+        if self.straddle_entry > 0:
+            self.total_pnl_pct = (self.total_pnl / self.straddle_entry) * 100
+        else:
+            self.total_pnl_pct = 0.0
+
+    def get_money_pnl(self) -> float:
+        """Actual money P&L = combined option pnl * lot size."""
+        return self.total_pnl * self.lot_size
+
+    def to_dict(self) -> Dict:
+        """Flat dictionary for CSV export."""
+        straddle_exit = None
+        if self.ce_exit_price is not None and self.pe_exit_price is not None:
+            straddle_exit = self.ce_exit_price + self.pe_exit_price
+
+        return {
+            'instrument': self.instrument,
+            'direction': self.direction,
+            'option_type': 'STRADDLE',
+            'strike': self.ce_strike,
+            'expiry_type': self.expiry_type,
+            'expiry_code': self.expiry_code,
+            'signal_time': self.signal_time,
+            'base_price': self.straddle_entry,
+            'parts_filled': 1,
+            'total_levels': 1,
+            'avg_entry_price': self.straddle_entry,
+            'exit_time': self.exit_time,
+            'exit_price': straddle_exit,
+            'exit_reason': self.exit_reason,
+            'pnl': self.total_pnl,
+            'pnl_pct': self.total_pnl_pct,
+            'money_pnl': self.total_pnl * self.lot_size,
+            'lot_size': self.lot_size,
+            'status': self.status,
+            # Leg details
+            'ce_strike': self.ce_strike,
+            'pe_strike': self.pe_strike,
+            'ce_entry_price': self.ce_entry_price,
+            'pe_entry_price': self.pe_entry_price,
+            'ce_exit_price': self.ce_exit_price,
+            'pe_exit_price': self.pe_exit_price,
+        }

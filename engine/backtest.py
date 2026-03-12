@@ -9,20 +9,21 @@ Reads strategy config dict and executes:
   4. Staggered entry -> fill parts
   5. SL / TP / EOD exit
 
-CE and PE are tracked independently:
-  - Can observe/trade one CE and one PE at the same time
-  - Cannot have two CEs or two PEs active simultaneously
-  - Both reset at end of day
+Supports two trade modes:
+  - "single_leg" (default): CE and PE tracked independently.
+  - "straddle": single track, both ATM CE+PE sold/bought together.
+    Signal fires on combined straddle price, SL/TP on combined price.
 """
 
 import pandas as pd
 import logging
 from datetime import datetime, time
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
-from engine.trade import Trade, parse_entry_config
+from engine.trade import Trade, StraddleTrade, parse_entry_config
 from engine.signals import check_signal
 from engine.detailed_logger import DetailedLogger
+from engine.expiry_calendar import pick_expiry_code
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ class BacktestEngine:
         self.strategy = strategy
         self.lot_size = lot_size
         self.output_dir = output_dir
-        self.trades: List[Trade] = []
+        self.trades: List[Union[Trade, StraddleTrade]] = []
 
         # Parse trading hours from strategy config
         self.entry_time = datetime.strptime(
@@ -67,6 +68,12 @@ class BacktestEngine:
         # Direction: "sell" or "buy"
         self.direction = strategy.get('direction', 'sell')
 
+        # Trade mode: "single_leg" (default) or "straddle"
+        self.trade_mode = strategy.get('trade_mode', 'single_leg')
+
+        # Expiry mode: "weekly" (default) or "monthly"
+        self.expiry_mode = strategy.get('expiry_mode', 'weekly')
+
         # Signal conditions from strategy
         self.signal_conditions = strategy.get('signal_conditions', [])
         self.signal_logic = strategy.get('signal_logic', 'AND')
@@ -77,10 +84,16 @@ class BacktestEngine:
         # Max trades per day (None = unlimited)
         self.max_trades_per_day = strategy.get('max_trades_per_day', None)
 
+        # Max SL hits per day (None = unlimited). Stop new entries for the day.
+        self.max_sl_per_day = strategy.get('max_sl_per_day', None)
+
         logger.info(f"Initialized backtest for {instrument} | "
                      f"direction={self.direction} | "
+                     f"trade_mode={self.trade_mode} | "
+                     f"expiry_mode={self.expiry_mode} | "
                      f"SL={self.stop_loss_pct}% | TP={self.target_pct}% | "
-                     f"max_trades/day={self.max_trades_per_day or 'unlimited'}")
+                     f"max_trades/day={self.max_trades_per_day or 'unlimited'} | "
+                     f"max_sl/day={self.max_sl_per_day or 'unlimited'}")
 
     # ------------------------------------------
     # CONTRACT CANDLE LOOKUP
@@ -208,6 +221,12 @@ class BacktestEngine:
         Returns (closed: bool, event_msg: str or None).
         """
         if not trade.has_position():
+            return False, None
+
+        # Skip SL/TP on the candle where entry just happened.
+        # Entry is at close (last price of candle), so the candle's
+        # high/low occurred before entry. Only EOD exit is allowed.
+        if not is_exit_time and trade.last_entry_time == t:
             return False, None
 
         candle = self._get_contract_candle(trade, minute_data)
@@ -373,13 +392,348 @@ class BacktestEngine:
         return trade.status
 
     # ------------------------------------------
+    # STRADDLE: get candle for a specific contract
+    # ------------------------------------------
+    def _get_candle_by_contract(self, minute_data, strike, option_type, expiry_type, expiry_code):
+        """Look up a candle by explicit contract fields (for straddle legs)."""
+        match = minute_data[
+            (minute_data['strike'] == strike) &
+            (minute_data['option_type'] == option_type) &
+            (minute_data['expiry_type'] == expiry_type) &
+            (minute_data['expiry_code'] == expiry_code)
+        ]
+        return match.iloc[0] if len(match) > 0 else None
+
+    # ------------------------------------------
+    # STRADDLE: SL/TP exit check on combined price
+    # ------------------------------------------
+    def _check_straddle_exit(self, trade: StraddleTrade, minute_data, day_data,
+                             t, is_exit_time: bool):
+        """
+        Check SL/TP/EOD exit for a straddle trade.
+
+        Uses close-to-close comparison on combined straddle price
+        (CE close + PE close) since intra-candle straddle high/low
+        cannot be reconstructed from individual leg OHLC.
+
+        Returns (closed: bool, event_msg: str or None).
+        """
+        # Skip SL/TP on entry candle
+        if not is_exit_time and trade.last_entry_time == t:
+            return False, None
+
+        ce_candle = self._get_candle_by_contract(
+            minute_data, trade.ce_strike, 'CE', trade.expiry_type, trade.expiry_code)
+        pe_candle = self._get_candle_by_contract(
+            minute_data, trade.pe_strike, 'PE', trade.expiry_type, trade.expiry_code)
+
+        if ce_candle is None or pe_candle is None:
+            if is_exit_time:
+                # Try last available candles for EOD
+                ce_exit, pe_exit = self._find_last_straddle_candles(
+                    trade, day_data)
+                if ce_exit is not None and pe_exit is not None:
+                    trade.close_trade(t, ce_exit, pe_exit, 'EOD')
+                else:
+                    # No data at all — close flat
+                    trade.close_trade(
+                        t, trade.ce_entry_price, trade.pe_entry_price, 'EOD')
+                self.trades.append(trade)
+                msg = (f"EXIT EOD: CE={trade.ce_exit_price:.2f} "
+                       f"PE={trade.pe_exit_price:.2f}")
+                return True, msg
+            return False, None
+
+        ce_close = ce_candle['close']
+        pe_close = pe_candle['close']
+        current_straddle = ce_close + pe_close
+        entry = trade.straddle_entry
+
+        exit_reason = None
+        msg = None
+
+        if self.direction == 'sell':
+            # Sell: SL when straddle rises, TP when straddle drops
+            sl_price = entry * (1 + self.stop_loss_pct / 100)
+            tp_price = entry * (1 - self.target_pct / 100)
+
+            if current_straddle >= sl_price:
+                exit_reason = 'STOP_LOSS'
+                msg = (f"EXIT STOP_LOSS: straddle={current_straddle:.2f} >= "
+                       f"SL={sl_price:.2f} | entry={entry:.2f} | "
+                       f"pnl=-{self.stop_loss_pct}%")
+            elif current_straddle <= tp_price:
+                exit_reason = 'TARGET'
+                msg = (f"EXIT TARGET: straddle={current_straddle:.2f} <= "
+                       f"TP={tp_price:.2f} | entry={entry:.2f} | "
+                       f"pnl=+{self.target_pct}%")
+        else:
+            # Buy: SL when straddle drops, TP when straddle rises
+            sl_price = entry * (1 - self.stop_loss_pct / 100)
+            tp_price = entry * (1 + self.target_pct / 100)
+
+            if current_straddle <= sl_price:
+                exit_reason = 'STOP_LOSS'
+                msg = (f"EXIT STOP_LOSS: straddle={current_straddle:.2f} <= "
+                       f"SL={sl_price:.2f} | entry={entry:.2f} | "
+                       f"pnl=-{self.stop_loss_pct}%")
+            elif current_straddle >= tp_price:
+                exit_reason = 'TARGET'
+                msg = (f"EXIT TARGET: straddle={current_straddle:.2f} >= "
+                       f"TP={tp_price:.2f} | entry={entry:.2f} | "
+                       f"pnl=+{self.target_pct}%")
+
+        # EOD: force close at current closes
+        if exit_reason is None and is_exit_time:
+            exit_reason = 'EOD'
+            pnl = entry - current_straddle if self.direction == 'sell' else current_straddle - entry
+            pnl_pct = (pnl / entry) * 100
+            msg = (f"EXIT EOD: straddle={current_straddle:.2f} | "
+                   f"entry={entry:.2f} | pnl={pnl_pct:+.2f}%")
+
+        if exit_reason:
+            trade.close_trade(t, ce_close, pe_close, exit_reason)
+            self.trades.append(trade)
+            return True, msg
+
+        return False, None
+
+    def _find_last_straddle_candles(self, trade: StraddleTrade, day_data):
+        """Find last available close prices for both CE and PE legs within trading hours."""
+        ce_data = day_data[
+            (day_data['strike'] == trade.ce_strike) &
+            (day_data['option_type'] == 'CE') &
+            (day_data['expiry_type'] == trade.expiry_type) &
+            (day_data['expiry_code'] == trade.expiry_code) &
+            (day_data['time_only'] <= self.exit_time)
+        ]
+        pe_data = day_data[
+            (day_data['strike'] == trade.pe_strike) &
+            (day_data['option_type'] == 'PE') &
+            (day_data['expiry_type'] == trade.expiry_type) &
+            (day_data['expiry_code'] == trade.expiry_code) &
+            (day_data['time_only'] <= self.exit_time)
+        ]
+        ce_exit = ce_data.iloc[-1]['close'] if len(ce_data) > 0 else None
+        pe_exit = pe_data.iloc[-1]['close'] if len(pe_data) > 0 else None
+        return ce_exit, pe_exit
+
+    # ------------------------------------------
+    # STRADDLE: EOD safety net
+    # ------------------------------------------
+    def _eod_close_straddle(self, trade: StraddleTrade, day_data, date) -> str:
+        """Safety net: close straddle at EOD if still open."""
+        if trade.has_position():
+            ce_exit, pe_exit = self._find_last_straddle_candles(trade, day_data)
+            if ce_exit is not None and pe_exit is not None:
+                trade.close_trade(
+                    pd.Timestamp(f"{date} {self.exit_time}"),
+                    ce_exit, pe_exit, 'EOD')
+                msg = (f"EXIT EOD (safety net): straddle="
+                       f"{ce_exit + pe_exit:.2f} | pnl={trade.total_pnl_pct:+.2f}%")
+            else:
+                trade.close_trade(
+                    pd.Timestamp(f"{date} {self.exit_time}"),
+                    trade.ce_entry_price, trade.pe_entry_price, 'EOD')
+                msg = "EXIT EOD (safety net, no data, closed flat)"
+            self.trades.append(trade)
+            return msg
+        return "EOD: no position"
+
+    # ------------------------------------------
+    # STRADDLE: status string for logging
+    # ------------------------------------------
+    def _get_straddle_status(self, trade: Optional[StraddleTrade], minute_data) -> str:
+        """Get a short status string for the straddle track."""
+        if trade is None:
+            return "idle"
+
+        ce_candle = self._get_candle_by_contract(
+            minute_data, trade.ce_strike, 'CE', trade.expiry_type, trade.expiry_code)
+        pe_candle = self._get_candle_by_contract(
+            minute_data, trade.pe_strike, 'PE', trade.expiry_type, trade.expiry_code)
+
+        if ce_candle is not None and pe_candle is not None:
+            current = ce_candle['close'] + pe_candle['close']
+            if self.direction == 'sell':
+                sl = trade.straddle_entry * (1 + self.stop_loss_pct / 100)
+                tp = trade.straddle_entry * (1 - self.target_pct / 100)
+            else:
+                sl = trade.straddle_entry * (1 - self.stop_loss_pct / 100)
+                tp = trade.straddle_entry * (1 + self.target_pct / 100)
+            return (f"straddle {int(trade.ce_strike)} | "
+                    f"curr={current:.2f} entry={trade.straddle_entry:.2f} "
+                    f"SL={sl:.2f} TP={tp:.2f}")
+        return f"straddle {int(trade.ce_strike)} | no data"
+
+    # ------------------------------------------
     # MAIN LOOP
     # ------------------------------------------
-    def run(self) -> List[Trade]:
+    def run(self) -> List[Union[Trade, StraddleTrade]]:
         """
         Run the full backtest.
 
-        Returns list of completed Trade objects.
+        Dispatches to single-leg or straddle mode based on trade_mode config.
+        Returns list of completed Trade or StraddleTrade objects.
+        """
+        if self.trade_mode == 'straddle':
+            return self._run_straddle()
+        return self._run_single_leg()
+
+    # ------------------------------------------
+    # STRADDLE MODE MAIN LOOP
+    # ------------------------------------------
+    def _run_straddle(self) -> List[StraddleTrade]:
+        """
+        Run straddle backtest.
+
+        Single track: sell/buy both ATM CE and PE together.
+        Signal fires on straddle indicator columns (e.g., straddle_bb_upper).
+        SL/TP tracked on combined straddle price (close-to-close).
+        """
+        logger.info("=" * 60)
+        logger.info(f"BACKTEST (STRADDLE): {self.instrument}")
+        logger.info("=" * 60)
+
+        active: Optional[StraddleTrade] = None
+        dates = self.df['date'].unique()
+
+        dlog = DetailedLogger(self.instrument, self.strategy, self.output_dir)
+        dlog.open()
+
+        logger.info(f"Processing {len(dates)} trading days (straddle mode)...")
+
+        for day_num, date in enumerate(dates, 1):
+            if day_num % 50 == 0:
+                logger.info(
+                    f"Day {day_num}/{len(dates)} | "
+                    f"Trades so far: {len(self.trades)}"
+                )
+
+            # For monthly expiry: pick the best expiry_code for this day.
+            # Uses the calendar-based 15-day rule, with ATM data fallback.
+            if self.expiry_mode == 'monthly':
+                day_data_all = self.df[self.df['date'] == date]
+                expiry_code = pick_expiry_code(self.instrument, day_data_all, date)
+                if expiry_code is None:
+                    continue  # no ATM data at all today
+                day_data = day_data_all[day_data_all['expiry_code'] == expiry_code]
+            else:
+                day_data = self.df[self.df['date'] == date]
+
+            minutes = day_data['datetime'].unique()
+            day_trade_count = 0
+            day_sl_count = 0
+
+            dlog.day_header(date)
+
+            for minute in minutes:
+                t = pd.Timestamp(minute)
+                t_only = t.time()
+
+                if t_only < self.entry_time:
+                    continue
+                if t_only > self.exit_time:
+                    continue
+
+                is_exit_time = (t_only >= self.exit_time)
+                minute_data = day_data[day_data['datetime'] == minute]
+                events = []
+
+                # ATM data for this minute
+                atm_data = minute_data[minute_data['moneyness'] == 'ATM']
+
+                # Build ATM info for logging
+                atm_info = {
+                    'ce_strike': '--', 'ce_rsi': '--',
+                    'pe_strike': '--', 'pe_rsi': '--',
+                }
+                ce_row = None
+                pe_row = None
+                for _, row in atm_data.iterrows():
+                    if row['option_type'] == 'CE':
+                        ce_row = row
+                        atm_info['ce_strike'] = str(int(row['strike']))
+                    elif row['option_type'] == 'PE':
+                        pe_row = row
+                        atm_info['pe_strike'] = str(int(row['strike']))
+
+                # --- SIGNAL DETECTION (straddle mode) ---
+                day_limit_hit = (
+                    self.max_trades_per_day is not None
+                    and day_trade_count >= self.max_trades_per_day
+                )
+                sl_limit_hit = (
+                    self.max_sl_per_day is not None
+                    and day_sl_count >= self.max_sl_per_day
+                )
+
+                if (not is_exit_time and not day_limit_hit and not sl_limit_hit
+                        and active is None
+                        and ce_row is not None and pe_row is not None):
+                    # Check signal on any ATM row (straddle columns are same for all)
+                    # Use CE row — straddle_close, straddle_bb_* are merged by datetime
+                    fired, reason = check_signal(
+                        ce_row, self.signal_conditions, self.signal_logic,
+                    )
+                    if fired:
+                        # Create straddle trade: sell both legs at current ATM closes
+                        active = StraddleTrade(
+                            signal_time=t,
+                            ce_strike=ce_row['strike'],
+                            pe_strike=pe_row['strike'],
+                            ce_entry_price=ce_row['close'],
+                            pe_entry_price=pe_row['close'],
+                            expiry_type=ce_row['expiry_type'],
+                            expiry_code=ce_row['expiry_code'],
+                            instrument=self.instrument,
+                            direction=self.direction,
+                            lot_size=self.lot_size,
+                        )
+                        day_trade_count += 1
+                        events.append(
+                            f"STRADDLE SIGNAL: {reason} | "
+                            f"CE {int(ce_row['strike'])}={ce_row['close']:.2f} + "
+                            f"PE {int(pe_row['strike'])}={pe_row['close']:.2f} = "
+                            f"{active.straddle_entry:.2f}"
+                        )
+
+                # --- EXIT CHECK ---
+                if active is not None:
+                    closed, exit_msg = self._check_straddle_exit(
+                        active, minute_data, day_data, t, is_exit_time
+                    )
+                    if closed:
+                        if active.exit_reason == 'STOP_LOSS':
+                            day_sl_count += 1
+                        events.append(f"STRADDLE {exit_msg}")
+                        active = None
+
+                # --- WRITE LOG LINE ---
+                time_str = t_only.strftime('%H:%M')
+                straddle_status = self._get_straddle_status(active, minute_data)
+                dlog.log_minute(
+                    time_str, atm_info,
+                    straddle_status, "-- (straddle mode)", events)
+
+            # --- END OF DAY ---
+            if active is not None:
+                msg = self._eod_close_straddle(active, day_data, date)
+                dlog.log_event(f"STRADDLE {msg}")
+                active = None
+
+        dlog.close(len(self.trades))
+        logger.info(f"Backtest done (straddle). Total trades: {len(self.trades)}")
+        return self.trades
+
+    # ------------------------------------------
+    # SINGLE-LEG MODE MAIN LOOP (existing behavior)
+    # ------------------------------------------
+    def _run_single_leg(self) -> List[Trade]:
+        """
+        Run the original single-leg backtest.
+
+        CE and PE tracked independently. This is the default mode.
         """
         logger.info("=" * 60)
         logger.info(f"BACKTEST: {self.instrument}")
@@ -408,6 +762,7 @@ class BacktestEngine:
 
             # Track how many new trades (observations) were opened today
             day_trade_count = 0
+            day_sl_count = 0
 
             # Day header in detailed log
             dlog.day_header(date)
@@ -455,13 +810,17 @@ class BacktestEngine:
                         atm_info['pe_strike'] = str(int(row['strike']))
 
                 # --- SIGNAL DETECTION (ATM only, not at exit time) ---
-                # Skip new signals if daily trade limit reached
+                # Skip new signals if daily trade or SL limit reached
                 day_limit_hit = (
                     self.max_trades_per_day is not None
                     and day_trade_count >= self.max_trades_per_day
                 )
+                sl_limit_hit = (
+                    self.max_sl_per_day is not None
+                    and day_sl_count >= self.max_sl_per_day
+                )
 
-                if not is_exit_time and not day_limit_hit:
+                if not is_exit_time and not day_limit_hit and not sl_limit_hit:
                     for _, row in atm_data.iterrows():
                         # Check if signal conditions are met
                         fired, reason = check_signal(
@@ -564,6 +923,8 @@ class BacktestEngine:
                         active_ce, minute_data, day_data, t, is_exit_time
                     )
                     if closed:
+                        if active_ce.exit_reason == 'STOP_LOSS':
+                            day_sl_count += 1
                         events.append(f"CE {exit_msg}")
                         active_ce = None
 
@@ -572,6 +933,8 @@ class BacktestEngine:
                         active_pe, minute_data, day_data, t, is_exit_time
                     )
                     if closed:
+                        if active_pe.exit_reason == 'STOP_LOSS':
+                            day_sl_count += 1
                         events.append(f"PE {exit_msg}")
                         active_pe = None
 

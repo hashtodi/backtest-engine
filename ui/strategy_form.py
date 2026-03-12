@@ -62,9 +62,11 @@ def init_state():
     if "bt_logic" not in st.session_state:
         st.session_state.bt_logic = "AND"
 
-    # Entry — default: buy, direct entry
+    # Entry — default: buy, direct entry, single_leg mode
     if "bt_direction" not in st.session_state:
         st.session_state.bt_direction = "buy"
+    if "bt_trade_mode" not in st.session_state:
+        st.session_state.bt_trade_mode = "Single Leg"
     if "bt_entry_type" not in st.session_state:
         st.session_state.bt_entry_type = "Direct"
     if "bt_entry_levels" not in st.session_state:
@@ -102,6 +104,11 @@ def init_state():
         st.session_state.bt_capital = 200000
     if "bt_max_trades" not in st.session_state:
         st.session_state.bt_max_trades = 0
+    if "bt_max_sl" not in st.session_state:
+        st.session_state.bt_max_sl = 0
+    # Expiry mode: "Weekly" (default) or "Monthly" (with >15-day rule)
+    if "bt_expiry_mode" not in st.session_state:
+        st.session_state.bt_expiry_mode = "Weekly"
 
 
 # ============================================
@@ -290,21 +297,31 @@ def render_conditions():
                         "Other Indicator", available, key=wk,
                     )
                 elif compare in NEEDS_PRICE_FIELD:
-                    # Price-vs-indicator: let user pick which price field to compare.
-                    # e.g. "high" to catch wicks, "close" for standard comparison.
-                    wk = f"cond_pf_{uid}"
-                    if wk not in st.session_state:
-                        st.session_state[wk] = cond.get("price_field", "close")
-
-                    conditions[i]["price_field"] = st.selectbox(
-                        "Price Field", PRICE_FIELDS, key=wk,
-                    )
+                    # Price-vs-indicator: price field + optional % offset.
+                    pf_col, offset_col = st.columns(2)
+                    with pf_col:
+                        wk = f"cond_pf_{uid}"
+                        if wk not in st.session_state:
+                            st.session_state[wk] = cond.get("price_field", "close")
+                        conditions[i]["price_field"] = st.selectbox(
+                            "Price Field", PRICE_FIELDS, key=wk,
+                        )
+                    with offset_col:
+                        # % offset from indicator value (0 = compare directly)
+                        wk = f"cond_pctoff_{uid}"
+                        if wk not in st.session_state:
+                            st.session_state[wk] = float(cond.get("pct_offset", 0.0))
+                        conditions[i]["pct_offset"] = st.number_input(
+                            "% Offset", min_value=0.0, max_value=50.0,
+                            step=0.5, format="%.1f", key=wk,
+                            help="Shift threshold by this %. e.g. 2.5 = 2.5% above/below the band.",
+                        )
                 else:
                     st.caption("Compares to close price")
             with c4:
                 if st.button("✕", key=f"rm_cond_{uid}"):
                     for prefix in ("cond_ind_", "cond_cmp_", "cond_val_",
-                                   "cond_other_", "cond_pf_"):
+                                   "cond_other_", "cond_pf_", "cond_pctoff_"):
                         k = f"{prefix}{uid}"
                         if k in st.session_state:
                             del st.session_state[k]
@@ -323,17 +340,24 @@ def render_conditions():
 # ENTRY CONFIG (direct vs staggered)
 # ============================================
 def render_entry():
-    """Direction + direct/staggered entry with dynamic levels."""
+    """Direction + trade mode + direct/staggered entry with dynamic levels."""
     st.markdown("##### Trade Entry")
 
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
     with c1:
-        # No default — init_state() sets bt_direction
         st.selectbox("Direction", ["buy", "sell"], key="bt_direction")
     with c2:
-        # No default — init_state() sets bt_entry_type
+        st.radio("Trade Mode", ["Single Leg", "Straddle"],
+                 horizontal=True, key="bt_trade_mode",
+                 help="Single Leg = CE/PE independently. "
+                      "Straddle = sell/buy both ATM CE+PE together.")
+    with c3:
         st.radio("Entry Type", ["Direct", "Staggered", "Indicator Level"],
                  horizontal=True, key="bt_entry_type")
+
+    if st.session_state.bt_trade_mode == "Straddle":
+        st.info("Both ATM CE and PE will be sold/bought together. "
+                "SL/TP tracked on combined straddle price (CE+PE).")
 
     # "Indicator Level" entry: user picks an indicator whose live value
     # becomes the dynamic limit order price. Signal fires -> wait for
@@ -451,7 +475,7 @@ def render_session():
     if start_d and end_d and start_d >= end_d:
         st.error("Start date must be before end date.")
 
-    c5, c6, c7 = st.columns(3)
+    c5, c6, c7, c7b, c8 = st.columns(5)
     with c5:
         st.multiselect("Instruments", list(config.DATA_PATH.keys()),
                         key="bt_instruments")
@@ -461,3 +485,17 @@ def render_session():
     with c7:
         st.number_input("Max Trades/Day (0 = unlimited)", 0, 100,
                          key="bt_max_trades")
+    with c7b:
+        st.number_input("Max SL/Day (0 = unlimited)", 0, 100,
+                         key="bt_max_sl",
+                         help="Stop new entries after this many SL hits in a day.")
+    with c8:
+        st.radio("Expiry", ["Weekly", "Monthly"],
+                 horizontal=True, key="bt_expiry_mode",
+                 help="Weekly = nearest weekly expiry. "
+                      "Monthly = nearest monthly (>15 days to expiry), "
+                      "else next month.")
+
+    if st.session_state.bt_expiry_mode == "Monthly":
+        st.caption("Monthly mode: uses nearest monthly expiry if >15 days remain, "
+                   "otherwise switches to next month's expiry.")

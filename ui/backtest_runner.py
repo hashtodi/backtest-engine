@@ -175,8 +175,9 @@ def _run_backtest(strategy: dict, instruments: list, initial_capital: int):
             lot_size = config.LOT_SIZE.get(inst, 1)
             progress = st.progress(0, text=f"Loading {inst} data...")
 
-            # 1. Load data
-            df = load_data(data_path, start, end)
+            # 1. Load data (pass expiry_mode for monthly support)
+            expiry_mode = strategy.get('expiry_mode', 'weekly')
+            df = load_data(data_path, start, end, expiry_mode=expiry_mode)
             progress.progress(25, text=f"Calculating indicators for {inst}...")
 
             # 2. Calculate indicators
@@ -300,6 +301,7 @@ def _clear_dynamic_widget_keys():
     stale_prefixes = (
         "ind_type_", "ind_ps_", "ind_ind_",                     # indicator widgets
         "cond_ind_", "cond_cmp_", "cond_val_", "cond_other_",  # condition widgets
+        "cond_pf_", "cond_pctoff_",                             # price field + offset
         "lvl_pct_", "lvl_cap_",                                 # entry level widgets
         "rm_ind_", "rm_cond_", "rm_lvl_",                       # remove buttons
     )
@@ -402,6 +404,9 @@ def _load_strategy_into_form(slug: str):
         # Restore price field (close/high/low/open) for price-vs-indicator comparisons.
         if "price_field" in sc:
             cond["price_field"] = sc["price_field"]
+        # Restore % offset for price-vs-indicator comparisons.
+        if "pct_offset" in sc:
+            cond["pct_offset"] = sc["pct_offset"]
         conditions.append(cond)
     st.session_state.bt_conditions = conditions
 
@@ -422,6 +427,9 @@ def _load_strategy_into_form(slug: str):
         # Price field (for price_above, price_below, price_crosses_above, etc.)
         if "price_field" in cond:
             st.session_state[f"cond_pf_{uid}"] = cond["price_field"]
+        # % offset (for price_above, price_below, price_crosses_above, etc.)
+        if "pct_offset" in cond:
+            st.session_state[f"cond_pctoff_{uid}"] = float(cond["pct_offset"])
 
     # Update counter so _next_id("cond") won't collide
     st.session_state["_counter_cond"] = len(st.session_state.bt_conditions)
@@ -480,6 +488,14 @@ def _load_strategy_into_form(slug: str):
     mtd = strategy.get("max_trades_per_day")
     st.session_state.bt_max_trades = mtd if mtd else 0
 
+    # Trade mode and expiry mode (new fields, backward-compatible defaults)
+    tm = strategy.get("trade_mode", "single_leg")
+    st.session_state.bt_trade_mode = "Straddle" if tm == "straddle" else "Single Leg"
+    em = strategy.get("expiry_mode", "weekly")
+    st.session_state.bt_expiry_mode = "Monthly" if em == "monthly" else "Weekly"
+    msl = strategy.get("max_sl_per_day")
+    st.session_state.bt_max_sl = msl if msl else 0
+
 
 # ============================================
 # BUILD STRATEGY DICT FROM FORM STATE
@@ -506,9 +522,12 @@ def _build_strategy() -> Dict:
             sc["value"] = cond.get("value", 70.0)
         if cond["compare"] in NEEDS_OTHER:
             sc["other"] = cond.get("other", "")
-        # Save selected price field (close/high/low/open) for price-vs-indicator comparisons.
+        # Save selected price field and optional % offset for price-vs-indicator comparisons.
         if cond["compare"] in NEEDS_PRICE_FIELD:
             sc["price_field"] = cond.get("price_field", "close")
+            pct_off = cond.get("pct_offset", 0.0)
+            if pct_off:
+                sc["pct_offset"] = pct_off
         sig_conditions.append(sc)
 
     # -- Entry config (modular dict) --
@@ -545,6 +564,14 @@ def _build_strategy() -> Dict:
         name = f"Custom {st.session_state.get('bt_direction', 'buy').title()}"
     desc = st.session_state.get("bt_desc", "").strip() or "Custom strategy from UI"
 
+    # Trade mode: "single_leg" or "straddle"
+    trade_mode_ui = st.session_state.get("bt_trade_mode", "Single Leg")
+    trade_mode = "straddle" if trade_mode_ui == "Straddle" else "single_leg"
+
+    # Expiry mode: "weekly" or "monthly"
+    expiry_mode_ui = st.session_state.get("bt_expiry_mode", "Weekly")
+    expiry_mode = "monthly" if expiry_mode_ui == "Monthly" else "weekly"
+
     strategy_dict = {
         "name": name,
         "description": desc,
@@ -552,12 +579,15 @@ def _build_strategy() -> Dict:
         "signal_conditions": sig_conditions,
         "signal_logic": st.session_state.get("bt_logic", "AND"),
         "direction": st.session_state.get("bt_direction", "buy"),
+        "trade_mode": trade_mode,
+        "expiry_mode": expiry_mode,
         "entry": entry_cfg,
         "stop_loss_pct": sl,
         "target_pct": tp,
         "trading_start": start_t.strftime("%H:%M"),
         "trading_end": end_t.strftime("%H:%M"),
         "max_trades_per_day": max_trades if max_trades > 0 else None,
+        "max_sl_per_day": st.session_state.get("bt_max_sl", 0) or None,
         "instruments": st.session_state.get("bt_instruments", list(config.DATA_PATH.keys())),
         "backtest_start": start_d.strftime("%Y-%m-%d"),
         "backtest_end": end_d.strftime("%Y-%m-%d"),
