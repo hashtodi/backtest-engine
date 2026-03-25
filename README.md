@@ -1,6 +1,6 @@
-# RSI Options Trading Strategy
+#Backtest and forward test engine.
 
-Modular options trading system with backtesting, forward testing (paper trading), and live trading via Dhan API.
+Modular options trading system with backtesting, forward testing (paper trading)via Dhan API.
 
 ## Quick Start
 

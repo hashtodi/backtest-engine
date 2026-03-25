@@ -1,0 +1,36 @@
+{
+    "name": "Zone RSI Bias",
+    "description": "VWAP + EMA10 zone on Nifty spot for bias. Buy CE on bullish shift, PE on bearish shift. Entry: RSI < 65 and RSI_MA - RSI < 1 on ATM option. Exit: RSI drops below RSI_MA by 1pt or 4% option SL.",
+    "type": "zone_rsi_bias",
+
+    "indicators": [
+        {"type": "EMA", "name": "spot_ema_10", "period": 10, "price_source": "spot"},
+        {"type": "RSI", "name": "opt_rsi_14", "period": 14, "price_source": "option"},
+        {"type": "RSI_MA", "name": "opt_rsi_ma_14", "rsi_period": 14, "ma_period": 14, "price_source": "option"}
+    ],
+
+    "spot_data_path": "data/spot/nifty/NIFTY_1m.parquet",
+
+    "vwap_indicator": "spot_vwap",
+    "ema_indicator": "spot_ema_10",
+    "rsi_indicator": "opt_rsi_14",
+    "rsi_ma_indicator": "opt_rsi_ma_14",
+
+    "rsi_entry_threshold": 65,
+    "rsi_ma_diff_threshold": 1,
+    "rsi_exit_diff": 1,
+    "stop_loss_pct": 4,
+
+    "direction": "buy",
+    "trade_mode": "single_leg",
+    "entry": {"type": "direct"},
+    "expiry_mode": "weekly",
+
+    "trading_start": "09:30",
+    "trading_end": "15:00",
+
+    "instruments": ["NIFTY"],
+    "backtest_start": "2026-01-01",
+    "backtest_end": "2026-03-12",
+    "initial_capital": 200000
+}

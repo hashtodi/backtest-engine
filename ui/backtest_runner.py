@@ -304,6 +304,7 @@ def _clear_dynamic_widget_keys():
         "cond_pf_", "cond_pctoff_",                             # price field + offset
         "lvl_pct_", "lvl_cap_",                                 # entry level widgets
         "rm_ind_", "rm_cond_", "rm_lvl_",                       # remove buttons
+        "_bt_sl_ind_sel", "_bt_tp_ind_sel",                     # exit indicator selectboxes
     )
     for k in list(st.session_state.keys()):
         if any(k.startswith(p) for p in stale_prefixes):
@@ -461,15 +462,48 @@ def _load_strategy_into_form(slug: str):
     else:
         st.session_state.bt_entry_type = "Direct"
 
-    # --- Risk ---
-    sl = strategy.get("stop_loss_pct", 20)
-    tp = strategy.get("target_pct", 10)
-    st.session_state.bt_sl_on = sl < 9999
-    if sl < 9999:
-        st.session_state.bt_sl_pct = float(sl)
-    st.session_state.bt_tp_on = tp < 9999
-    if tp < 9999:
-        st.session_state.bt_tp_pct = float(tp)
+    # --- Risk / Exit ---
+    exit_cfg = strategy.get("exit")
+    if exit_cfg:
+        sl_cfg = exit_cfg.get("stop_loss", {})
+        tp_cfg = exit_cfg.get("target", {})
+
+        sl_src = sl_cfg.get("source", "percentage")
+        tp_src = tp_cfg.get("source", "percentage")
+
+        # SL
+        sl_disabled = (sl_src == "percentage" and sl_cfg.get("value", 0) >= 9999)
+        st.session_state.bt_sl_on = not sl_disabled
+        st.session_state.bt_sl_source = sl_src.title()
+        if sl_src == "percentage" and not sl_disabled:
+            st.session_state.bt_sl_pct = float(sl_cfg.get("value", 15.0))
+        elif sl_src == "indicator":
+            st.session_state.bt_sl_indicator = sl_cfg.get("indicator", "")
+        elif sl_src == "ratio":
+            st.session_state.bt_sl_multiplier = float(sl_cfg.get("multiplier", 0.5))
+
+        # TP
+        tp_disabled = (tp_src == "percentage" and tp_cfg.get("value", 0) >= 9999)
+        st.session_state.bt_tp_on = not tp_disabled
+        st.session_state.bt_tp_source = tp_src.title()
+        if tp_src == "percentage" and not tp_disabled:
+            st.session_state.bt_tp_pct = float(tp_cfg.get("value", 10.0))
+        elif tp_src == "indicator":
+            st.session_state.bt_tp_indicator = tp_cfg.get("indicator", "")
+        elif tp_src == "ratio":
+            st.session_state.bt_tp_multiplier = float(tp_cfg.get("multiplier", 2.0))
+    else:
+        # Old format: flat stop_loss_pct / target_pct
+        sl = strategy.get("stop_loss_pct", 20)
+        tp = strategy.get("target_pct", 10)
+        st.session_state.bt_sl_on = sl < 9999
+        if sl < 9999:
+            st.session_state.bt_sl_pct = float(sl)
+        st.session_state.bt_sl_source = "Percentage"
+        st.session_state.bt_tp_on = tp < 9999
+        if tp < 9999:
+            st.session_state.bt_tp_pct = float(tp)
+        st.session_state.bt_tp_source = "Percentage"
 
     # --- Session ---
     from datetime import datetime
@@ -548,9 +582,27 @@ def _build_strategy() -> Dict:
     else:
         entry_cfg = {"type": "direct"}
 
-    # -- SL/TP: disabled = 9999 (effectively never triggers, only EOD exit) --
-    sl = st.session_state.get("bt_sl_pct", 15.0) if st.session_state.get("bt_sl_on") else 9999
-    tp = st.session_state.get("bt_tp_pct", 10.0) if st.session_state.get("bt_tp_on") else 9999
+    # -- Exit config --
+    sl_on = st.session_state.get("bt_sl_on", True)
+    tp_on = st.session_state.get("bt_tp_on", True)
+    sl_source = st.session_state.get("bt_sl_source", "Percentage") if sl_on else None
+    tp_source = st.session_state.get("bt_tp_source", "Percentage") if tp_on else None
+
+    def _build_exit_side(source, prefix):
+        if source is None:
+            return {"source": "percentage", "value": 9999}
+        if source == "Percentage":
+            return {"source": "percentage", "value": st.session_state.get(f"bt_{prefix}_pct", 15.0)}
+        elif source == "Indicator":
+            return {"source": "indicator", "indicator": st.session_state.get(f"bt_{prefix}_indicator", "")}
+        elif source == "Ratio":
+            return {"source": "ratio", "multiplier": st.session_state.get(f"bt_{prefix}_multiplier", 2.0)}
+        return {"source": "percentage", "value": 9999}
+
+    exit_cfg = {
+        "stop_loss": _build_exit_side(sl_source, "sl"),
+        "target": _build_exit_side(tp_source, "tp"),
+    }
 
     start_t = st.session_state.get("bt_start_time", dt_time(9, 30))
     end_t = st.session_state.get("bt_end_time", dt_time(15, 15))
@@ -582,8 +634,10 @@ def _build_strategy() -> Dict:
         "trade_mode": trade_mode,
         "expiry_mode": expiry_mode,
         "entry": entry_cfg,
-        "stop_loss_pct": sl,
-        "target_pct": tp,
+        "exit": exit_cfg,
+        # Flat fields for backward compatibility (straddle, forward engine, telegram)
+        "stop_loss_pct": exit_cfg["stop_loss"].get("value", 9999) if exit_cfg["stop_loss"]["source"] == "percentage" else 9999,
+        "target_pct": exit_cfg["target"].get("value", 9999) if exit_cfg["target"]["source"] == "percentage" else 9999,
         "trading_start": start_t.strftime("%H:%M"),
         "trading_end": end_t.strftime("%H:%M"),
         "max_trades_per_day": max_trades if max_trades > 0 else None,

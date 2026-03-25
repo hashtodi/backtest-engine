@@ -12,6 +12,8 @@ Used for manual verification of backtest decisions.
 import logging
 from typing import List, Optional, Dict
 
+from engine.reporter import _exit_display_str
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,8 +46,8 @@ class DetailedLogger:
         self.file.write(f"DETAILED BACKTEST LOG: {self.instrument}\n")
         self.file.write(f"Strategy: {cfg.get('name', 'Unknown')}\n")
         self.file.write(f"Direction: {cfg.get('direction', 'sell')}\n")
-        self.file.write(f"SL: {cfg.get('stop_loss_pct', 0)}% | "
-                        f"TP: {cfg.get('target_pct', 0)}%\n")
+        sl_str, tp_str = _exit_display_str(cfg)
+        self.file.write(f"SL: {sl_str} | TP: {tp_str}\n")
 
         # Entry config
         entry = cfg.get('entry', {})

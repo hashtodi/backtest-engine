@@ -63,6 +63,11 @@ DATA_PATH = {
     'SENSEX': 'data/options/sensex/SENSEX_OPTIONS_1m.parquet',
 }
 
+# Spot / underlying 1-min OHLCV data (used by zone-based strategies)
+SPOT_DATA_PATH = {
+    'NIFTY': 'data/spot/nifty/NIFTY_1m.parquet',
+}
+
 # ============================================
 # INSTRUMENTS LIST
 # ============================================

@@ -1,0 +1,63 @@
+{
+  "name": "BOOM Direct ST SL",
+  "description": "Boom signals with direct entry, SuperTrend(3,10) as SL, TP 10%",
+  "indicators": [
+    {
+      "type": "SUPERTREND",
+      "name": "opt_st_4_11",
+      "price_source": "option",
+      "factor": 4,
+      "atr_period": 11
+    },
+    {
+      "type": "SMA",
+      "name": "opt_sma_13",
+      "price_source": "option",
+      "period": 13
+    },
+    {
+      "type": "SUPERTREND",
+      "name": "opt_st_3_10",
+      "price_source": "option",
+      "factor": 3,
+      "atr_period": 10
+    }
+  ],
+  "signal_conditions": [
+    {
+      "indicator": "opt_sma_13",
+      "compare": "price_above",
+      "price_field": "close"
+    },
+    {
+      "indicator": "opt_st_4_11_value",
+      "compare": "price_above",
+      "price_field": "close"
+    },
+    {
+      "indicator": "opt_st_3_10_value",
+      "compare": "price_above",
+      "price_field": "close"
+    }
+  ],
+  "signal_logic": "AND",
+  "direction": "buy",
+  "entry": {
+    "type": "direct"
+  },
+  "exit": {
+    "stop_loss": { "source": "indicator", "indicator": "opt_st_3_10_value" },
+    "target": { "source": "percentage", "value": 10.0 }
+  },
+  "stop_loss_pct": 9999,
+  "target_pct": 10.0,
+  "trading_start": "09:30",
+  "trading_end": "15:15",
+  "max_trades_per_day": null,
+  "instruments": [
+    "NIFTY"
+  ],
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2026-03-12",
+  "initial_capital": 200000
+}

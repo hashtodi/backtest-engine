@@ -15,17 +15,110 @@ Supports two trade modes:
     Signal fires on combined straddle price, SL/TP on combined price.
 """
 
+import math
 import pandas as pd
 import logging
 from datetime import datetime, time
 from typing import Dict, List, Optional, Union
 
-from engine.trade import Trade, StraddleTrade, parse_entry_config
+from engine.trade import Trade, StraddleTrade, parse_entry_config, parse_exit_config
 from engine.signals import check_signal
 from engine.detailed_logger import DetailedLogger
 from engine.expiry_calendar import pick_expiry_code
 
 logger = logging.getLogger(__name__)
+
+
+def resolve_exit_levels(avg_entry, direction, exit_config, indicator_row):
+    """
+    Compute SL and TP price levels for this minute.
+
+    Args:
+        avg_entry: weighted average entry price
+        direction: "sell" or "buy"
+        exit_config: normalized dict from parse_exit_config()
+        indicator_row: dict-like row with indicator values (or {} if N/A)
+
+    Returns:
+        (sl_level, tp_level) — either can be None if indicator is NaN/wrong-side
+    """
+    sl_cfg = exit_config["stop_loss"]
+    tp_cfg = exit_config["target"]
+
+    if sl_cfg["source"] == "ratio":
+        tp_level = _resolve_one_side(tp_cfg, avg_entry, direction, "target", indicator_row)
+        if tp_level is None:
+            return None, None
+        anchor_distance = abs(avg_entry - tp_level)
+        multiplier = sl_cfg.get("multiplier", 1.0)
+        derived_distance = anchor_distance * multiplier
+        if direction == "sell":
+            sl_level = avg_entry + derived_distance
+        else:
+            sl_level = avg_entry - derived_distance
+        return sl_level, tp_level
+
+    elif tp_cfg["source"] == "ratio":
+        sl_level = _resolve_one_side(sl_cfg, avg_entry, direction, "stop_loss", indicator_row)
+        if sl_level is None:
+            return None, None
+        anchor_distance = abs(avg_entry - sl_level)
+        multiplier = tp_cfg.get("multiplier", 1.0)
+        derived_distance = anchor_distance * multiplier
+        if direction == "sell":
+            tp_level = avg_entry - derived_distance
+        else:
+            tp_level = avg_entry + derived_distance
+        return sl_level, tp_level
+
+    else:
+        sl_level = _resolve_one_side(sl_cfg, avg_entry, direction, "stop_loss", indicator_row)
+        tp_level = _resolve_one_side(tp_cfg, avg_entry, direction, "target", indicator_row)
+        return sl_level, tp_level
+
+
+def _resolve_one_side(side_cfg, avg_entry, direction, side_type, indicator_row):
+    """
+    Resolve one exit side (SL or TP) to a price level.
+
+    Returns float price level, or None if unavailable.
+    """
+    source = side_cfg["source"]
+
+    if source == "percentage":
+        value = side_cfg.get("value", 20 if side_type == "stop_loss" else 10)
+        if side_type == "stop_loss":
+            if direction == "sell":
+                return avg_entry * (1 + value / 100)
+            else:
+                return avg_entry * (1 - value / 100)
+        else:
+            if direction == "sell":
+                return avg_entry * (1 - value / 100)
+            else:
+                return avg_entry * (1 + value / 100)
+
+    elif source == "indicator":
+        ind_name = side_cfg.get("indicator", "")
+        val = indicator_row.get(ind_name) if ind_name else None
+        if val is None or (isinstance(val, float) and math.isnan(val)):
+            return None
+
+        # Wrong-side guard
+        if side_type == "stop_loss":
+            if direction == "sell" and val <= avg_entry:
+                return None
+            if direction == "buy" and val >= avg_entry:
+                return None
+        else:
+            if direction == "sell" and val >= avg_entry:
+                return None
+            if direction == "buy" and val <= avg_entry:
+                return None
+
+        return val
+
+    return None
 
 
 class BacktestEngine:
@@ -61,7 +154,10 @@ class BacktestEngine:
             strategy.get('trading_end', '14:30'), '%H:%M'
         ).time()
 
-        # SL / TP from strategy config
+        # Exit config: percentage, indicator, or ratio
+        self.exit_config = parse_exit_config(strategy)
+
+        # Keep flat values for straddle mode (which still uses percentage only)
         self.stop_loss_pct = strategy.get('stop_loss_pct', 20)
         self.target_pct = strategy.get('target_pct', 10)
 
@@ -87,11 +183,27 @@ class BacktestEngine:
         # Max SL hits per day (None = unlimited). Stop new entries for the day.
         self.max_sl_per_day = strategy.get('max_sl_per_day', None)
 
+        # Build SL/TP display string for logging
+        sl_src = self.exit_config["stop_loss"]["source"]
+        tp_src = self.exit_config["target"]["source"]
+        if sl_src == "percentage":
+            sl_display = f"{self.exit_config['stop_loss']['value']}%"
+        elif sl_src == "indicator":
+            sl_display = f"indicator({self.exit_config['stop_loss']['indicator']})"
+        else:
+            sl_display = f"ratio({self.exit_config['stop_loss']['multiplier']}x)"
+        if tp_src == "percentage":
+            tp_display = f"{self.exit_config['target']['value']}%"
+        elif tp_src == "indicator":
+            tp_display = f"indicator({self.exit_config['target']['indicator']})"
+        else:
+            tp_display = f"ratio({self.exit_config['target']['multiplier']}x)"
+
         logger.info(f"Initialized backtest for {instrument} | "
                      f"direction={self.direction} | "
                      f"trade_mode={self.trade_mode} | "
                      f"expiry_mode={self.expiry_mode} | "
-                     f"SL={self.stop_loss_pct}% | TP={self.target_pct}% | "
+                     f"SL={sl_display} | TP={tp_display} | "
                      f"max_trades/day={self.max_trades_per_day or 'unlimited'} | "
                      f"max_sl/day={self.max_sl_per_day or 'unlimited'}")
 
@@ -262,40 +374,41 @@ class BacktestEngine:
         exit_price = None
         msg = None
 
-        if self.direction == 'sell':
-            # Sell direction: SL when price rises, TP when price drops
-            sl_price = avg_entry * (1 + self.stop_loss_pct / 100)
-            tp_price = avg_entry * (1 - self.target_pct / 100)
+        # Resolve dynamic SL/TP levels
+        sl_price, tp_price = resolve_exit_levels(
+            avg_entry, self.direction, self.exit_config, candle
+        )
 
-            if candle['high'] >= sl_price:
+        if self.direction == 'sell':
+            if sl_price is not None and candle['high'] >= sl_price:
                 exit_reason = 'STOP_LOSS'
                 exit_price = sl_price
+                pnl_pct = -((sl_price - avg_entry) / avg_entry) * 100
                 msg = (f"EXIT STOP_LOSS: high={candle['high']:.2f} >= "
                        f"SL={sl_price:.2f} | avg={avg_entry:.2f} | "
-                       f"exit @ {sl_price:.2f} | pnl=-{self.stop_loss_pct}%")
-            elif candle['low'] <= tp_price:
+                       f"exit @ {sl_price:.2f} | pnl={pnl_pct:+.2f}%")
+            elif tp_price is not None and candle['low'] <= tp_price:
                 exit_reason = 'TARGET'
                 exit_price = tp_price
+                pnl_pct = ((avg_entry - tp_price) / avg_entry) * 100
                 msg = (f"EXIT TARGET: low={candle['low']:.2f} <= "
                        f"TP={tp_price:.2f} | avg={avg_entry:.2f} | "
-                       f"exit @ {tp_price:.2f} | pnl=+{self.target_pct}%")
+                       f"exit @ {tp_price:.2f} | pnl=+{pnl_pct:.2f}%")
         else:
-            # Buy direction: SL when price drops, TP when price rises
-            sl_price = avg_entry * (1 - self.stop_loss_pct / 100)
-            tp_price = avg_entry * (1 + self.target_pct / 100)
-
-            if candle['low'] <= sl_price:
+            if sl_price is not None and candle['low'] <= sl_price:
                 exit_reason = 'STOP_LOSS'
                 exit_price = sl_price
+                pnl_pct = -((avg_entry - sl_price) / avg_entry) * 100
                 msg = (f"EXIT STOP_LOSS: low={candle['low']:.2f} <= "
                        f"SL={sl_price:.2f} | avg={avg_entry:.2f} | "
-                       f"exit @ {sl_price:.2f} | pnl=-{self.stop_loss_pct}%")
-            elif candle['high'] >= tp_price:
+                       f"exit @ {sl_price:.2f} | pnl={pnl_pct:+.2f}%")
+            elif tp_price is not None and candle['high'] >= tp_price:
                 exit_reason = 'TARGET'
                 exit_price = tp_price
+                pnl_pct = ((tp_price - avg_entry) / avg_entry) * 100
                 msg = (f"EXIT TARGET: high={candle['high']:.2f} >= "
                        f"TP={tp_price:.2f} | avg={avg_entry:.2f} | "
-                       f"exit @ {tp_price:.2f} | pnl=+{self.target_pct}%")
+                       f"exit @ {tp_price:.2f} | pnl=+{pnl_pct:.2f}%")
 
         # EOD: at exit time, force close at candle close
         if exit_reason is None and is_exit_time:
@@ -380,14 +493,13 @@ class BacktestEngine:
             avg = trade.get_avg_entry_price()
             n_filled = len(trade.parts)
             n_total = trade.num_levels
-            if self.direction == 'sell':
-                sl = avg * (1 + self.stop_loss_pct / 100)
-                tp = avg * (1 - self.target_pct / 100)
-            else:
-                sl = avg * (1 - self.stop_loss_pct / 100)
-                tp = avg * (1 + self.target_pct / 100)
+            sl, tp = resolve_exit_levels(
+                avg, self.direction, self.exit_config, candle if candle is not None else {}
+            )
+            sl_str = f"{sl:.2f}" if sl is not None else "N/A"
+            tp_str = f"{tp:.2f}" if tp is not None else "N/A"
             return (f"in position {strike} {opt} ({n_filled}/{n_total}) | "
-                    f"{price_str} | avg={avg:.2f} SL={sl:.2f} TP={tp:.2f}")
+                    f"{price_str} | avg={avg:.2f} SL={sl_str} TP={tp_str}")
 
         return trade.status
 

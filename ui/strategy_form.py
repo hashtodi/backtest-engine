@@ -79,15 +79,30 @@ def init_state():
     if "bt_entry_indicator" not in st.session_state:
         st.session_state.bt_entry_indicator = ""
 
-    # Risk management — SL 15%, TP 10%
+    # Risk management — exit config
+    # SL source: "Percentage", "Indicator", "Ratio"
+    if "bt_sl_source" not in st.session_state:
+        st.session_state.bt_sl_source = "Percentage"
     if "bt_sl_on" not in st.session_state:
         st.session_state.bt_sl_on = True
     if "bt_sl_pct" not in st.session_state:
         st.session_state.bt_sl_pct = 15.0
+    if "bt_sl_indicator" not in st.session_state:
+        st.session_state.bt_sl_indicator = ""
+    if "bt_sl_multiplier" not in st.session_state:
+        st.session_state.bt_sl_multiplier = 0.5
+
+    # TP source: "Percentage", "Indicator", "Ratio"
+    if "bt_tp_source" not in st.session_state:
+        st.session_state.bt_tp_source = "Percentage"
     if "bt_tp_on" not in st.session_state:
         st.session_state.bt_tp_on = True
     if "bt_tp_pct" not in st.session_state:
         st.session_state.bt_tp_pct = 10.0
+    if "bt_tp_indicator" not in st.session_state:
+        st.session_state.bt_tp_indicator = ""
+    if "bt_tp_multiplier" not in st.session_state:
+        st.session_state.bt_tp_multiplier = 2.0
 
     # Session settings — 9:30 to 15:15, both instruments, 0 = unlimited
     if "bt_start_time" not in st.session_state:
@@ -431,25 +446,84 @@ def render_entry():
 # RISK MANAGEMENT
 # ============================================
 def render_risk():
-    """SL/TP with on/off toggles. Defaults come from init_state()."""
+    """SL/TP with source selection: Percentage, Indicator, or Ratio."""
     st.markdown("##### Risk Management")
 
+    available = get_available_columns(st.session_state.bt_indicators)
+    is_straddle = st.session_state.get("bt_trade_mode") == "Straddle"
+
+    # Source options depend on mode
+    if is_straddle:
+        sources = ["Percentage"]
+        st.caption("Straddle mode: only percentage exits supported.")
+    else:
+        sources = ["Percentage", "Indicator", "Ratio"]
+
     c1, c2 = st.columns(2)
+
     with c1:
-        # No value= param — default set in init_state()
         sl_on = st.toggle("Stop Loss", key="bt_sl_on")
         if sl_on:
-            st.number_input(
-                "SL %", min_value=0.1, max_value=100.0,
-                step=0.5, format="%.1f", key="bt_sl_pct",
-            )
+            sl_source = st.selectbox("SL Source", sources, key="bt_sl_source")
+            if sl_source == "Percentage":
+                st.number_input(
+                    "SL %", min_value=0.1, max_value=100.0,
+                    step=0.5, format="%.1f", key="bt_sl_pct",
+                )
+            elif sl_source == "Indicator":
+                if available:
+                    default = st.session_state.bt_sl_indicator
+                    if default not in available:
+                        default = available[0]
+                        st.session_state.bt_sl_indicator = default
+                    st.session_state.bt_sl_indicator = st.selectbox(
+                        "SL Indicator", available,
+                        index=available.index(default),
+                        key="_bt_sl_ind_sel",
+                    )
+                else:
+                    st.warning("Add indicators first.")
+            elif sl_source == "Ratio":
+                st.number_input(
+                    "SL = TP distance ×",
+                    min_value=0.1, max_value=10.0,
+                    step=0.1, format="%.1f", key="bt_sl_multiplier",
+                )
+
     with c2:
         tp_on = st.toggle("Take Profit", key="bt_tp_on")
         if tp_on:
-            st.number_input(
-                "TP %", min_value=0.1, max_value=100.0,
-                step=0.5, format="%.1f", key="bt_tp_pct",
-            )
+            tp_source = st.selectbox("TP Source", sources, key="bt_tp_source")
+            if tp_source == "Percentage":
+                st.number_input(
+                    "TP %", min_value=0.1, max_value=100.0,
+                    step=0.5, format="%.1f", key="bt_tp_pct",
+                )
+            elif tp_source == "Indicator":
+                if available:
+                    default = st.session_state.bt_tp_indicator
+                    if default not in available:
+                        default = available[0]
+                        st.session_state.bt_tp_indicator = default
+                    st.session_state.bt_tp_indicator = st.selectbox(
+                        "TP Indicator", available,
+                        index=available.index(default),
+                        key="_bt_tp_ind_sel",
+                    )
+                else:
+                    st.warning("Add indicators first.")
+            elif tp_source == "Ratio":
+                st.number_input(
+                    "TP = SL distance ×",
+                    min_value=0.1, max_value=10.0,
+                    step=0.1, format="%.1f", key="bt_tp_multiplier",
+                )
+
+    # Validation: both can't be ratio
+    sl_source = st.session_state.get("bt_sl_source", "Percentage")
+    tp_source = st.session_state.get("bt_tp_source", "Percentage")
+    if sl_source == "Ratio" and tp_source == "Ratio":
+        st.error("Both SL and TP cannot be Ratio (circular). Change one.")
 
 
 # ============================================

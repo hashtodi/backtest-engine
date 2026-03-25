@@ -20,6 +20,7 @@ from typing import Dict, Optional
 import config
 from engine.data_loader import load_data, calculate_indicators
 from engine.backtest import BacktestEngine
+from engine.zone_rsi_backtest import ZoneRsiBiasEngine, prepare_zone_data, build_results_df
 from engine import reporter
 
 # ============================================
@@ -90,8 +91,24 @@ def run_for_instrument(instrument: str, strategy: Dict) -> Optional[Dict]:
     # 2. Calculate indicators (generic, from strategy config)
     df = calculate_indicators(df, strategy.get('indicators', []))
 
-    # 3. Run backtest (output_dir defaults to "." for CLI usage)
-    engine = BacktestEngine(instrument, df, strategy, lot_size, output_dir=".")
+    # 3. Run backtest — dispatch based on strategy type
+    if strategy.get('type') == 'zone_rsi_bias':
+        # Zone RSI Bias: VWAP needs volume from separate spot parquet.
+        # EMA (spot), RSI (option), RSI_MA (option) already computed above
+        # by calculate_indicators() using the indicators[] config.
+        spot_path = strategy.get(
+            'spot_data_path',
+            config.SPOT_DATA_PATH.get(instrument, '')
+        )
+        df = prepare_zone_data(
+            df, spot_path,
+            strategy.get('backtest_start', '2025-01-01'),
+            strategy.get('backtest_end', '2025-12-31'),
+        )
+        engine = ZoneRsiBiasEngine(instrument, df, strategy, lot_size, output_dir=".")
+    else:
+        engine = BacktestEngine(instrument, df, strategy, lot_size, output_dir=".")
+
     trades = engine.run()
 
     # 4. Generate report
@@ -103,6 +120,10 @@ def run_for_instrument(instrument: str, strategy: Dict) -> Optional[Dict]:
         start_date=strategy.get('backtest_start', '2025-01-01'),
         end_date=strategy.get('backtest_end', '2025-12-31'),
     )
+
+    # Keep raw Trade objects for custom CSV formats (zone_rsi_bias)
+    if report:
+        report['_trades_raw'] = trades
 
     # Print to console
     reporter.print_report(report, strategy.get('name', ''))
@@ -155,7 +176,16 @@ def main():
         # CSV per instrument
         for inst, report in reports.items():
             filename = f"backtest_results_{inst}.csv"
-            reporter.save_csv(report, filename)
+
+            # Zone RSI Bias: custom CSV with RSI, RSI_MA, Bias Change columns
+            if (strategy.get('type') == 'zone_rsi_bias'
+                    and '_trades_raw' in report):
+                lot_size = config.LOT_SIZE.get(inst, 1)
+                custom_df = build_results_df(report['_trades_raw'], lot_size)
+                custom_df.to_csv(filename, index=False)
+                logger.info(f"Saved {inst} -> {filename} ({len(custom_df)} trades)")
+            else:
+                reporter.save_csv(report, filename)
 
         # Trade log + markdown summary
         reporter.write_trade_log(reports, strategy)

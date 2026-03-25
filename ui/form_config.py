@@ -36,6 +36,10 @@ INDICATOR_PARAMS = {
         {"key": "period", "label": "Period", "type": int, "default": 20, "min": 2, "max": 200},
         {"key": "std_dev", "label": "Std Dev", "type": float, "default": 2.0, "min": 0.5, "max": 5.0},
     ],
+    "RSI_MA": [
+        {"key": "rsi_period", "label": "RSI Period", "type": int, "default": 14, "min": 2, "max": 200},
+        {"key": "ma_period", "label": "MA Period", "type": int, "default": 14, "min": 2, "max": 200},
+    ],
     "VWAP": [],
     "SUPERTREND": [
         {"key": "factor", "label": "Factor", "type": int, "default": 4, "min": 1, "max": 20},

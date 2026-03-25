@@ -202,11 +202,29 @@ def render_strategy_description(strategy: Dict):
             st.markdown("**Entry:** Direct (100%)")
 
         # --- Risk ---
-        sl = strategy.get("stop_loss_pct", 0)
-        tp = strategy.get("target_pct", 0)
-        sl_str = "Off" if sl >= 9999 else f"{sl}%"
-        tp_str = "Off" if tp >= 9999 else f"{tp}%"
-        st.markdown(f"**SL:** {sl_str} | **TP:** {tp_str}")
+        exit_cfg = strategy.get("exit")
+        if exit_cfg:
+            sl_cfg = exit_cfg.get("stop_loss", {})
+            tp_cfg = exit_cfg.get("target", {})
+
+            def _exit_label(cfg):
+                src = cfg.get("source", "percentage")
+                if src == "percentage":
+                    v = cfg.get("value", 0)
+                    return "Off" if v >= 9999 else f"{v}%"
+                elif src == "indicator":
+                    return f"indicator({cfg.get('indicator', '?')})"
+                elif src == "ratio":
+                    return f"ratio({cfg.get('multiplier', 1)}x)"
+                return "?"
+
+            st.markdown(f"**SL:** {_exit_label(sl_cfg)} | **TP:** {_exit_label(tp_cfg)}")
+        else:
+            sl = strategy.get("stop_loss_pct", 0)
+            tp = strategy.get("target_pct", 0)
+            sl_str = "Off" if sl >= 9999 else f"{sl}%"
+            tp_str = "Off" if tp >= 9999 else f"{tp}%"
+            st.markdown(f"**SL:** {sl_str} | **TP:** {tp_str}")
 
         # --- Instruments & session ---
         instruments = strategy.get("instruments", [])

@@ -15,10 +15,12 @@ from indicators.macd import MACD
 from indicators.bollinger import BollingerBands
 from indicators.vwap import VWAP
 from indicators.supertrend import SuperTrend
+from indicators.rsi_ma import RSI_MA
 
 # Registry: maps indicator type string to class
 _REGISTRY = {
     "RSI": RSI,
+    "RSI_MA": RSI_MA,
     "EMA": EMA,
     "SMA": SMA,
     "MACD": MACD,

@@ -51,6 +51,53 @@ def parse_entry_config(strategy: Dict) -> Tuple[List[Dict], Optional[str]]:
     return [{"pct_from_base": 0, "capital_pct": 100.0}], None
 
 
+def parse_exit_config(strategy: Dict) -> Dict:
+    """
+    Parse exit config from strategy, with auto-migration for old format.
+
+    Old format (flat fields):
+        {"stop_loss_pct": 20, "target_pct": 10}
+
+    New format (structured):
+        {"exit": {"stop_loss": {"source": "percentage", "value": 20}, ...}}
+
+    Returns normalized dict:
+        {"stop_loss": {"source": ..., ...}, "target": {"source": ..., ...}}
+    """
+    if "exit" in strategy:
+        cfg = strategy["exit"]
+    else:
+        # Auto-migrate old flat config
+        cfg = {
+            "stop_loss": {
+                "source": "percentage",
+                "value": strategy.get("stop_loss_pct", 20),
+            },
+            "target": {
+                "source": "percentage",
+                "value": strategy.get("target_pct", 10),
+            },
+        }
+
+    sl = cfg.get("stop_loss", {"source": "percentage", "value": 20})
+    tp = cfg.get("target", {"source": "percentage", "value": 10})
+
+    # Validate: both can't be ratio (circular dependency)
+    if sl.get("source") == "ratio" and tp.get("source") == "ratio":
+        raise ValueError("Exit config invalid: both stop_loss and target cannot be 'ratio' (circular)")
+
+    # Validate: straddle mode cannot use indicator/ratio exits
+    if strategy.get("trade_mode") == "straddle":
+        for label, side in [("stop_loss", sl), ("target", tp)]:
+            if side.get("source") in ("indicator", "ratio"):
+                raise ValueError(
+                    f"Exit config invalid: {label} source '{side['source']}' "
+                    f"not supported in straddle mode"
+                )
+
+    return {"stop_loss": sl, "target": tp}
+
+
 # ============================================
 # POSITION PART (one leg of staggered entry)
 # ============================================

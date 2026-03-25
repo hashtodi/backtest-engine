@@ -147,3 +147,6 @@ Replace `<your-lightsail-ip>` with your Lightsail instance's public IP.
 | `~/backtest-engine/saved_strategies/` | Strategy JSON configs |
 | `~/backtest-engine/data/` | Parquet data files |
 | `~/backtest-engine/.env` | Environment variables (API keys, config) |
+
+
+python run_backtest.py --strategy zone_rsi_bias

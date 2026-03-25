@@ -22,6 +22,30 @@ from engine.trade import Trade, StraddleTrade
 logger = logging.getLogger(__name__)
 
 
+def _exit_display_str(strategy_config):
+    """Build SL/TP display strings from strategy config (handles old and new format)."""
+    exit_cfg = strategy_config.get("exit")
+    if exit_cfg:
+        def _label(cfg):
+            src = cfg.get("source", "percentage")
+            if src == "percentage":
+                v = cfg.get("value", 0)
+                return "Off" if v >= 9999 else f"{v}%"
+            elif src == "indicator":
+                return f"indicator({cfg.get('indicator', '?')})"
+            elif src == "ratio":
+                return f"ratio({cfg.get('multiplier', 1)}x)"
+            return "?"
+        sl_str = _label(exit_cfg.get("stop_loss", {}))
+        tp_str = _label(exit_cfg.get("target", {}))
+    else:
+        sl = strategy_config.get("stop_loss_pct", 0)
+        tp = strategy_config.get("target_pct", 0)
+        sl_str = "Off" if sl >= 9999 else f"{sl}%"
+        tp_str = "Off" if tp >= 9999 else f"{tp}%"
+    return sl_str, tp_str
+
+
 # ============================================
 # GENERATE REPORT (builds stats dict)
 # ============================================
@@ -198,8 +222,8 @@ def write_trade_log(
         f.write(f"BACKTEST TRADE LOG - {strategy_config.get('name', 'Strategy')}\n")
         f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"Direction: {strategy_config.get('direction', 'sell')}\n")
-        f.write(f"SL: {strategy_config.get('stop_loss_pct', 0)}% | "
-                f"TP: {strategy_config.get('target_pct', 0)}%\n")
+        sl_str, tp_str = _exit_display_str(strategy_config)
+        f.write(f"SL: {sl_str} | TP: {tp_str}\n")
 
         # Entry config summary
         entry = strategy_config.get('entry', {})
@@ -333,10 +357,9 @@ def write_summary(
         else:
             f.write("- **Entry**: Direct (100%)\n")
 
-        f.write(f"- **Stop Loss**: {strategy_config.get('stop_loss_pct', 0)}% "
-                f"(exact fill assumed)\n")
-        f.write(f"- **Target**: {strategy_config.get('target_pct', 0)}% "
-                f"(exact fill assumed)\n")
+        sl_str, tp_str = _exit_display_str(strategy_config)
+        f.write(f"- **Stop Loss**: {sl_str} (exact fill assumed)\n")
+        f.write(f"- **Target**: {tp_str} (exact fill assumed)\n")
         f.write(f"- **Hours**: {strategy_config.get('trading_start', '09:30')} - "
                 f"{strategy_config.get('trading_end', '14:30')} IST\n")
         expiry_mode = strategy_config.get('expiry_mode', 'weekly')
