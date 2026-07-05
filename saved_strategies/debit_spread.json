@@ -1,0 +1,37 @@
+{
+  "name": "debit_spread",
+  "strategy_type": "debit_spread",
+  "instruments": ["NIFTY"],
+  "entry": {
+    "days_before_expiry": 2,
+    "entry_time": "11:00"
+  },
+  "structure": {
+    "ce_legs": [
+      { "side": "BUY",  "lots": 1, "strike_offset": -1 },
+      { "side": "SELL", "lots": 3, "strike_offset":  4 },
+      { "side": "BUY",  "lots": 2, "strike_offset":  5 }
+    ],
+    "pe_legs": [
+      { "side": "BUY",  "lots": 1, "strike_offset":  1 },
+      { "side": "SELL", "lots": 3, "strike_offset": -4 },
+      { "side": "BUY",  "lots": 2, "strike_offset": -5 }
+    ]
+  },
+  "exit": {
+    "tp_target_inr": 900,
+    "tp_multiple_of_max_loss": 0.8,
+    "expiry_squareoff_time": "15:25",
+    "data_gap_force_exit_minutes": 30
+  },
+  "sizing": {
+    "sets_per_trade": 1,
+    "reference_capital": 300000
+  },
+  "metrics": {
+    "risk_free_rate": 0.06,
+    "annualization_factor": 52
+  },
+  "backtest_start": "2025-01-01",
+  "backtest_end":   "2026-05-05"
+}

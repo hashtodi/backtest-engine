@@ -1,0 +1,31 @@
+{
+  "name": "pcr_momentum",
+  "strategy_type": "pcr_momentum",
+  "instruments": ["NIFTY"],
+  "expiry": {
+    "expiry_type": "WEEK",
+    "expiry_code": 1
+  },
+  "entry": {
+    "pcr_first_time": "09:20",
+    "pcr_second_time": "10:00",
+    "pcr_threshold": 1.0,
+    "min_pcr_delta": 0.01,
+    "pcr_strikes_each_side": 10
+  },
+  "structure": {
+    "sell_offset_abs": 2,
+    "buy_offset_abs": 6,
+    "lots": 4
+  },
+  "exit": {
+    "force_exit_time": "15:00",
+    "tp_inr": 1200,
+    "sl_inr": 2000
+  },
+  "sizing": {
+    "reference_capital": 200000
+  },
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2026-05-15"
+}

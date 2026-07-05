@@ -1,0 +1,28 @@
+{
+  "name": "sensex_dual_short",
+  "strategy_type": "sensex_dual_short",
+  "instruments": ["SENSEX"],
+  "expiry": {
+    "expiry_type": "WEEK",
+    "expiry_code": 1
+  },
+  "entry": {
+    "part1_time": "09:45",
+    "range_start": "09:45",
+    "range_end": "11:45",
+    "delta_025_offset_strikes": 6,
+    "dte_max": 3
+  },
+  "management": {
+    "sl_pct_rise": 25,
+    "target_pct_capture": 90,
+    "max_reentries_per_leg": 1,
+    "square_off_time": "15:28",
+    "slippage_pct": 0
+  },
+  "structure": {
+    "lots": 1
+  },
+  "backtest_start": "2023-05-15",
+  "backtest_end": "2026-04-23"
+}

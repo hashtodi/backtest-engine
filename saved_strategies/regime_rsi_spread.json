@@ -1,0 +1,37 @@
+{
+  "name": "regime_rsi_spread",
+  "strategy_type": "regime_rsi_spread",
+  "instruments": ["NIFTY"],
+  "expiry": {
+    "expiry_type": "WEEK",
+    "expiry_code": 1
+  },
+  "signal": {
+    "timeframe_min": 15,
+    "rsi_length": 7,
+    "rsi_ma_length": 7,
+    "wma_length": 44,
+    "max_dist": 36,
+    "use_filter": true,
+    "warmup_days": 10
+  },
+  "entry": {
+    "window_start": "09:30",
+    "window_end": "15:00"
+  },
+  "structure": {
+    "sell_offset_abs": 2,
+    "buy_offset_abs": 6,
+    "lots": 1
+  },
+  "exit": {
+    "sl_points": 36,
+    "tp_points": 36,
+    "square_off_time": "15:15"
+  },
+  "sizing": {
+    "reference_capital": 200000
+  },
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2026-05-15"
+}

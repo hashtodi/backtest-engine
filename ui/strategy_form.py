@@ -78,6 +78,8 @@ def init_state():
     # Indicator column used as dynamic entry level (for "Indicator Level" entry type)
     if "bt_entry_indicator" not in st.session_state:
         st.session_state.bt_entry_indicator = ""
+    if "bt_exclusive_option_type" not in st.session_state:
+        st.session_state.bt_exclusive_option_type = False
 
     # Risk management — exit config
     # SL source: "Percentage", "Indicator", "Ratio"
@@ -91,6 +93,10 @@ def init_state():
         st.session_state.bt_sl_indicator = ""
     if "bt_sl_multiplier" not in st.session_state:
         st.session_state.bt_sl_multiplier = 0.5
+    if "bt_sl_max_pct_on" not in st.session_state:
+        st.session_state.bt_sl_max_pct_on = False
+    if "bt_sl_max_pct" not in st.session_state:
+        st.session_state.bt_sl_max_pct = 20.0
 
     # TP source: "Percentage", "Indicator", "Ratio"
     if "bt_tp_source" not in st.session_state:
@@ -121,6 +127,8 @@ def init_state():
         st.session_state.bt_max_trades = 0
     if "bt_max_sl" not in st.session_state:
         st.session_state.bt_max_sl = 0
+    if "bt_max_loss_pct" not in st.session_state:
+        st.session_state.bt_max_loss_pct = 0.0
     # Expiry mode: "Weekly" (default) or "Monthly" (with >15-day rule)
     if "bt_expiry_mode" not in st.session_state:
         st.session_state.bt_expiry_mode = "Weekly"
@@ -358,7 +366,7 @@ def render_entry():
     """Direction + trade mode + direct/staggered entry with dynamic levels."""
     st.markdown("##### Trade Entry")
 
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns([1.5, 1.5, 2, 1.5])
     with c1:
         st.selectbox("Direction", ["buy", "sell"], key="bt_direction")
     with c2:
@@ -369,6 +377,10 @@ def render_entry():
     with c3:
         st.radio("Entry Type", ["Direct", "Staggered", "Indicator Level"],
                  horizontal=True, key="bt_entry_type")
+    with c4:
+        st.toggle("Exclusive CE/PE", key="bt_exclusive_option_type",
+                  help="Only one trade (CE or PE) at a time. "
+                       "No signal scanning while any position is active.")
 
     if st.session_state.bt_trade_mode == "Straddle":
         st.info("Both ATM CE and PE will be sold/bought together. "
@@ -490,6 +502,16 @@ def render_risk():
                     step=0.1, format="%.1f", key="bt_sl_multiplier",
                 )
 
+            # Max SL % cap (only for non-percentage sources)
+            if sl_source in ("Indicator", "Ratio"):
+                max_on = st.toggle("Max SL %", key="bt_sl_max_pct_on",
+                                   help="Cap the SL at a max percentage from entry")
+                if max_on:
+                    st.number_input(
+                        "Max SL %", min_value=0.1, max_value=100.0,
+                        step=0.5, format="%.1f", key="bt_sl_max_pct",
+                    )
+
     with c2:
         tp_on = st.toggle("Take Profit", key="bt_tp_on")
         if tp_on:
@@ -549,7 +571,7 @@ def render_session():
     if start_d and end_d and start_d >= end_d:
         st.error("Start date must be before end date.")
 
-    c5, c6, c7, c7b, c8 = st.columns(5)
+    c5, c6, c7, c7b, c7c, c8 = st.columns(6)
     with c5:
         st.multiselect("Instruments", list(config.DATA_PATH.keys()),
                         key="bt_instruments")
@@ -563,6 +585,10 @@ def render_session():
         st.number_input("Max SL/Day (0 = unlimited)", 0, 100,
                          key="bt_max_sl",
                          help="Stop new entries after this many SL hits in a day.")
+    with c7c:
+        st.number_input("Max Daily Loss % (0 = off)", 0.0, 100.0,
+                         step=1.0, format="%.1f", key="bt_max_loss_pct",
+                         help="Force-exit all positions when cumulative day pnl% hits this.")
     with c8:
         st.radio("Expiry", ["Weekly", "Monthly"],
                  horizontal=True, key="bt_expiry_mode",

@@ -1,0 +1,40 @@
+quarter,ticker,company,earning_date,earning_weekday,earning_is_trading_day,earning_session,runup_10td_to_earning,runup_5td_to_earning,runup_2td_to_earning,preday_session,runup_10td_to_preday,runup_5td_to_preday,runup_2td_to_preday
+2,HBLENGINE,HBL Engineering Ltd,2025-11-08,Saturday,N,2025-11-07,5.95,-2.31,-1.53,2025-11-07,5.95,-2.31,-1.53
+2,NEULANDLAB,Neuland Laboratories Ltd,2025-11-07,Friday,Y,2025-11-07,9.93,9.86,0.83,2025-11-06,8.09,13.62,2.06
+2,NAVINFLUOR,Navin Fluorine International Ltd,2025-10-30,Thursday,Y,2025-10-30,2.58,-1.3,-0.2,2025-10-29,1.45,-3.62,-1.53
+2,CGCL,Capri Global Capital Ltd,2025-10-29,Wednesday,Y,2025-10-29,13.25,7.87,2.43,2025-10-28,10.95,7.48,1.86
+2,CARTRADE,Cartrade Tech Ltd,2025-10-28,Tuesday,Y,2025-10-28,23.67,25.27,21.12,2025-10-27,9.33,9.63,6.55
+2,SAGILITY,Sagility Ltd,2025-10-29,Wednesday,Y,2025-10-29,15.37,11.4,5.57,2025-10-28,7.35,8.76,4.31
+2,AARTIIND,Aarti Industries Ltd,2025-11-06,Thursday,Y,2025-11-06,3.93,1.04,0.22,2025-11-04,3.45,2.12,1.22
+2,SAILIFE,Sai Life Sciences Ltd,2025-11-06,Thursday,Y,2025-11-06,5.04,0.7,-0.11,2025-11-04,5.01,2.61,0.76
+2,INTELLECT,Intellect Design Arena Ltd,2025-10-31,Friday,Y,2025-10-31,15.79,13.13,9.61,2025-10-30,5.25,9.27,2.84
+2,HINDCOPPER,Hindustan Copper Ltd,2025-11-11,Tuesday,Y,2025-11-11,2.87,3.93,7.71,2025-11-10,-1.27,-0.63,5.1
+2,SYRMA,Syrma SGS Technology Ltd,2025-11-10,Monday,Y,2025-11-10,5.04,-0.26,2.65,2025-11-07,3.82,-3.02,1.73
+2,AEGISLOG,Aegis Logistics Ltd,2025-11-07,Friday,Y,2025-11-07,-4.13,-0.33,0.39,2025-11-06,-4.68,-2.32,-0.19
+3,IIFL,IIFL Finance Ltd,2026-01-22,Thursday,Y,2026-01-22,-19.44,-16.73,-16.01,2026-01-21,-6.2,-1.74,-3.99
+3,CRAFTSMAN,Craftsman Automation Ltd,2026-01-28,Wednesday,Y,2026-01-28,4.33,5.83,7.7,2026-01-27,0.26,0.18,-0.35
+3,POONAWALLA,Poonawalla Fincorp Ltd,2026-01-16,Friday,Y,2026-01-16,-3.99,0.74,0.85,2026-01-14,-1.7,0.51,4.97
+3,ENGINERSIN,Engineers India Ltd,2026-02-12,Thursday,Y,2026-02-12,4.36,3.7,-1.55,2026-02-11,8.57,4.05,1.75
+3,AARTIIND,Aarti Industries Ltd,2026-02-02,Monday,Y,2026-02-02,6.76,6.7,0.82,2026-02-01,3.6,4.56,3.37
+3,NAVINFLUOR,Navin Fluorine International Ltd,2026-02-09,Monday,Y,2026-02-09,12.61,11.11,5.02,2026-02-06,8.99,7.94,1.33
+3,SYRMA,Syrma SGS Technology Ltd,2026-01-29,Thursday,Y,2026-01-29,2.67,11.51,9.39,2026-01-28,3.33,11.74,9.37
+3,CHOICEIN,Choice International Ltd,2026-02-03,Tuesday,Y,2026-02-03,-1.64,5.11,3.85,2026-02-02,-8.56,0.56,-2.09
+3,SAILIFE,Sai Life Sciences Ltd,2026-02-05,Thursday,Y,2026-02-05,-1.33,-2.99,-7.82,2026-02-04,-0.85,-2.42,-3.81
+3,RRKABEL,R R Kabel Ltd,2026-01-31,Saturday,N,2026-01-30,-8.01,-2.97,2.98,2026-01-30,-8.01,-2.97,2.98
+3,ECLERX,eClerx Services Ltd,2026-01-28,Wednesday,Y,2026-01-28,-3.92,1.79,2.99,2026-01-27,-2.94,-0.07,2.53
+3,TARIL,Transformers & Rectifiers India Ltd,2026-01-08,Thursday,Y,2026-01-08,-0.66,-4.21,-6.98,2026-01-07,7.66,13.29,-0.88
+4,EMMVEE,Emmvee Photovoltaic Power Ltd,2026-04-28,Tuesday,Y,2026-04-28,14.89,4.04,5.13,2026-04-27,14.5,1.59,-3.84
+4,NEULANDLAB,Neuland Laboratories Ltd,2026-05-12,Tuesday,Y,2026-05-12,15.78,5.56,-3.66,2026-05-11,22.31,9.32,2.62
+4,RAILTEL,Railtel Corporation of India Ltd,2026-04-30,Thursday,Y,2026-04-30,-3.95,-1.72,-3.17,2026-04-29,-1.77,-1.83,0.49
+4,NAVINFLUOR,Navin Fluorine International Ltd,2026-04-29,Wednesday,Y,2026-04-29,9.41,8.03,3.82,2026-04-28,6.3,3.94,2.38
+4,VIJAYA,Vijaya Diagnostic Centre Ltd,2026-05-07,Thursday,Y,2026-05-07,16.81,7.97,2.56,2026-05-06,15.49,7.17,2.59
+4,ANGELONE,Angel One Ltd,2026-04-16,Thursday,Y,2026-04-16,28.08,9.5,4.28,2026-04-15,26.64,20.48,5.69
+4,CRAFTSMAN,Craftsman Automation Ltd,2026-05-07,Thursday,Y,2026-05-07,13.64,12.62,13.11,2026-05-06,1.58,2.47,0.77
+4,SHYAMMETL,Shyam Metalics & Energy Ltd,2026-05-11,Monday,Y,2026-05-11,5.75,-4.38,-1.73,2026-05-08,9.52,4.13,2.05
+4,MINDACORP,Minda Corporation Ltd,2026-05-22,Friday,Y,2026-05-22,7.3,10.12,12.02,2026-05-21,-0.28,5.24,3.05
+4,SBFC,SBFC Finance Ltd,2026-04-25,Saturday,N,2026-04-24,7.92,-2.83,-2.37,2026-04-24,7.92,-2.83,-2.37
+4,CGCL,Capri Global Capital Ltd,2026-04-30,Thursday,Y,2026-04-30,0.73,1.15,0.71,2026-04-29,-1.03,-2.27,-1.29
+4,HFCL,HFCL Ltd,2026-04-30,Thursday,Y,2026-04-30,27.09,18.63,8.13,2026-04-29,21.43,6.83,-0.15
+4,IIFL,IIFL Finance Ltd,2026-04-29,Wednesday,Y,2026-04-29,-4.3,-4.05,3.56,2026-04-28,-2.32,-8.45,4.62
+4,POONAWALLA,Poonawalla Fincorp Ltd,2026-05-05,Tuesday,Y,2026-05-05,4.85,4.29,4.53,2026-05-04,6.6,5.19,4.35
+4,NSLNISP,NMDC Steel Ltd,2026-05-29,Friday,Y,2026-05-29,-1.32,0.67,-1.1,2026-05-27,3.78,6.42,2.4

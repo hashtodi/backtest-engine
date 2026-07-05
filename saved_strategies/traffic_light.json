@@ -1,0 +1,24 @@
+{
+  "name": "traffic_light",
+  "strategy_type": "traffic_light",
+  "instrument": "NIFTY",
+  "params": {
+    "rsi_period": 14,
+    "ema_period": 15,
+    "rsi_overbought": 70,
+    "rsi_oversold": 30,
+    "sl_buffer": 0.0,
+    "rr_ratio": 1.2,
+    "premium_budget_inr": 10000,
+    "min_otm_offset": 0,
+    "max_otm_offset": 4
+  },
+  "timing": {
+    "scan_start": "09:25",
+    "entry_deadline": "14:44",
+    "force_exit": "14:45"
+  },
+  "lot_size": 1,
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2026-04-13"
+}

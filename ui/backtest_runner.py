@@ -241,7 +241,8 @@ def _show_results_and_downloads():
         for csv in sorted(out_path.glob("results_*.csv")):
             with cols[col_idx % 4]:
                 data = csv.read_bytes()
-                st.download_button(f"CSV: {csv.stem}", data, csv.name, mime="text/csv")
+                st.download_button(f"CSV: {csv.stem}", data, csv.name,
+                                   mime="text/csv", key=f"dl_csv_{csv.stem}")
             col_idx += 1
 
         # Trade log
@@ -249,7 +250,8 @@ def _show_results_and_downloads():
         if trades_log.exists():
             with cols[col_idx % 4]:
                 st.download_button("Trade Log", trades_log.read_bytes(),
-                                   "trades.log", mime="text/plain")
+                                   "trades.log", mime="text/plain",
+                                   key="dl_trades_log")
             col_idx += 1
 
         # Summary
@@ -257,14 +259,16 @@ def _show_results_and_downloads():
         if summary_md.exists():
             with cols[col_idx % 4]:
                 st.download_button("Summary", summary_md.read_bytes(),
-                                   "summary.md", mime="text/markdown")
+                                   "summary.md", mime="text/markdown",
+                                   key="dl_summary_md")
             col_idx += 1
 
         # Detailed logs
         for dlog in sorted(out_path.glob("detailed_*.log")):
             with cols[col_idx % 4]:
                 st.download_button(f"Log: {dlog.stem}", dlog.read_bytes(),
-                                   dlog.name, mime="text/plain")
+                                   dlog.name, mime="text/plain",
+                                   key=f"dl_log_{dlog.stem}")
             col_idx += 1
 
     if st.button("Clear results"):
@@ -482,6 +486,14 @@ def _load_strategy_into_form(slug: str):
         elif sl_src == "ratio":
             st.session_state.bt_sl_multiplier = float(sl_cfg.get("multiplier", 0.5))
 
+        # Max SL %
+        max_pct = sl_cfg.get("max_pct")
+        if max_pct is not None:
+            st.session_state.bt_sl_max_pct_on = True
+            st.session_state.bt_sl_max_pct = float(max_pct)
+        else:
+            st.session_state.bt_sl_max_pct_on = False
+
         # TP
         tp_disabled = (tp_src == "percentage" and tp_cfg.get("value", 0) >= 9999)
         st.session_state.bt_tp_on = not tp_disabled
@@ -529,6 +541,9 @@ def _load_strategy_into_form(slug: str):
     st.session_state.bt_expiry_mode = "Monthly" if em == "monthly" else "Weekly"
     msl = strategy.get("max_sl_per_day")
     st.session_state.bt_max_sl = msl if msl else 0
+    mlp = strategy.get("max_loss_pct_per_day")
+    st.session_state.bt_max_loss_pct = float(mlp) if mlp else 0.0
+    st.session_state.bt_exclusive_option_type = strategy.get("exclusive_option_type", False)
 
 
 # ============================================
@@ -599,8 +614,14 @@ def _build_strategy() -> Dict:
             return {"source": "ratio", "multiplier": st.session_state.get(f"bt_{prefix}_multiplier", 2.0)}
         return {"source": "percentage", "value": 9999}
 
+    sl_side = _build_exit_side(sl_source, "sl")
+    # Add max_pct cap if enabled and source is indicator/ratio
+    if (sl_source in ("Indicator", "Ratio")
+            and st.session_state.get("bt_sl_max_pct_on")):
+        sl_side["max_pct"] = st.session_state.get("bt_sl_max_pct", 20.0)
+
     exit_cfg = {
-        "stop_loss": _build_exit_side(sl_source, "sl"),
+        "stop_loss": sl_side,
         "target": _build_exit_side(tp_source, "tp"),
     }
 
@@ -642,6 +663,8 @@ def _build_strategy() -> Dict:
         "trading_end": end_t.strftime("%H:%M"),
         "max_trades_per_day": max_trades if max_trades > 0 else None,
         "max_sl_per_day": st.session_state.get("bt_max_sl", 0) or None,
+        "max_loss_pct_per_day": st.session_state.get("bt_max_loss_pct", 0) or None,
+        "exclusive_option_type": st.session_state.get("bt_exclusive_option_type", False),
         "instruments": st.session_state.get("bt_instruments", list(config.DATA_PATH.keys())),
         "backtest_start": start_d.strftime("%Y-%m-%d"),
         "backtest_end": end_d.strftime("%Y-%m-%d"),

@@ -1,0 +1,16 @@
+symbol,company,q3_result_date,mcap_cr,pe_ttm,sales_yoy_pct,profit_yoy_pct,opm_py,opm_q3,pledge_pct,d_promoter,d_fii,cond10_pledge,cond11_holding,cond12_peg,peg_value,passes_all_except_12,passes_all_12
+TATVA,Tatva Chintan Pharma Chem Ltd,2026-01-21,3127,95.4,52.9,10735.7,8.3,20.7,0.0,0.0,0.78,Y,Y,Y,0.88,Y,Y
+INDOTHAI,Indo Thai Securities Ltd,2026-01-13,3794,101.5,400.2,1670.8,30.5,84.4,0.0,-2.59,0.11,Y,N,N,5.73,N,N
+IIFL,IIFL Finance Ltd,2026-02-24,25960,20.3,40.3,1040.8,46.8,62.8,0.0,-0.02,1.0,Y,Y,N,1.78,Y,N
+CRAFTSMAN,Craftsman Automation Ltd,2026-01-28,18262,54.6,30.5,728.4,12.2,16.4,0.0,0.0,0.58,Y,Y,N,6.59,Y,N
+POONAWALLA,Poonawalla Fincorp Ltd,2026-01-16,39234,112.3,72.0,702.0,40.3,53.0,0.0,-0.01,0.05,Y,Y,N,14.0,Y,N
+DIACABS,Diamond Power Infrastructure Ltd,2026-02-14,7270,69.1,54.2,693.0,5.2,14.7,0.0,0.0,-0.97,Y,N,N,8.71,N,N
+ENGINERSIN,Engineers India Ltd,2026-02-26,11320,14.6,58.3,219.3,17.8,37.4,0.0,0.0,0.74,Y,Y,N,4.57,Y,N
+CUPID,Cupid Ltd,2026-01-29,13907,166.6,101.7,196.3,34.1,48.3,19.04,0.0,-1.1,N,N,N,56.22,N,N
+POCL,Pondy Oxides & Chemicals Ltd,2026-01-28,4445,40.1,53.2,166.9,5.2,7.4,0.0,0.0,0.59,Y,Y,N,15.01,Y,N
+ACUTAAS,Acutaas Chemicals Ltd,2026-01-28,13943,48.6,43.0,140.2,25.6,39.5,0.0,0.0,-0.18,Y,N,N,20.23,N,N
+NAVINFLUOR,Navin Fluorine International Ltd,2026-02-09,30340,55.6,47.2,121.8,26.0,33.9,1.08,-0.01,1.59,N,Y,N,25.06,N,N
+PNGJL,P N Gadgil Jewellers Ltd,2026-02-09,8244,21.6,35.6,98.6,5.3,8.1,0.0,0.0,-0.16,Y,N,N,10.88,N,N
+CHOICEIN,Choice International Ltd,2026-02-03,18653,89.2,44.9,94.3,29.5,38.6,13.94,-2.95,-0.81,N,N,N,45.92,N,N
+BAJAJCON,Bajaj Consumer Care Ltd,2026-01-21,3344,21.2,32.7,83.2,14.7,20.1,0.0,2.02,-0.42,Y,Y,N,11.59,Y,N
+WPIL,WPIL Ltd,2026-02-02,4016,33.6,41.2,73.4,17.1,24.3,1.16,0.0,0.01,N,Y,N,19.39,N,N

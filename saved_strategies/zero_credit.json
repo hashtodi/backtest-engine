@@ -1,0 +1,26 @@
+{
+  "name": "zero_credit",
+  "strategy_type": "zero_credit",
+  "instruments": ["NIFTY"],
+  "entry": {
+    "entry_time": "09:20"
+  },
+  "structure": {
+    "buy_premium_target_inr":  100,
+    "sell_premium_target_inr":  50,
+    "buy_lots":  1,
+    "sell_lots": 2,
+    "premium_match_tolerance_inr": 20
+  },
+  "exit": {
+    "tp_target_inr": 800,
+    "sl_target_inr": 2500,
+    "time_exit": "15:20",
+    "data_gap_force_exit_minutes": 30
+  },
+  "sizing": {
+    "reference_capital": 200000
+  },
+  "backtest_start": "2025-01-01",
+  "backtest_end":   "2026-05-08"
+}

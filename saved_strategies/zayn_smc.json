@@ -1,0 +1,43 @@
+{
+  "name": "zayn_smc",
+  "strategy_type": "zayn_smc",
+  "instruments": ["NIFTY"],
+  "expiry": {
+    "expiry_type": "WEEK",
+    "expiry_code": 1
+  },
+  "entry": {
+    "entry_earliest_time": "09:20"
+  },
+  "indicator": {
+    "signal_mode": "sweep",
+    "bias_tf_min": 60,
+    "bias_len": 50,
+    "use_bias": false,
+    "or_minutes": 15,
+    "use_pdhl": true,
+    "use_orhl": false,
+    "swing_lb": 10,
+    "atr_len": 14,
+    "disp_mult": 1.5,
+    "body_pct": 0.5,
+    "sweep_buf": 0.0,
+    "retest_bars": 10
+  },
+  "structure": {
+    "sell_offset_abs": 2,
+    "buy_offset_abs": 6,
+    "lots": 4
+  },
+  "exit": {
+    "force_exit_time": "15:20",
+    "flat_window_start": "15:15",
+    "tp_inr": 1200,
+    "sl_inr": 2000
+  },
+  "sizing": {
+    "reference_capital": 200000
+  },
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2026-05-15"
+}

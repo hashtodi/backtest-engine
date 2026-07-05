@@ -1,0 +1,34 @@
+{
+  "name": "ema_spread",
+  "strategy_type": "ema_spread",
+  "instruments": ["NIFTY"],
+  "expiry": {
+    "expiry_type": "WEEK",
+    "expiry_code": 1
+  },
+  "signal": {
+    "timeframe_min": 3,
+    "ema_length": 126,
+    "buffer_points": 25,
+    "warmup_days": 10
+  },
+  "entry": {
+    "window_start": "09:30",
+    "window_end": "15:00"
+  },
+  "structure": {
+    "sell_offset_abs": 2,
+    "buy_offset_abs": 6,
+    "lots": 4
+  },
+  "exit": {
+    "sl_points": 50,
+    "tp_points": 75,
+    "square_off_time": "15:15"
+  },
+  "sizing": {
+    "reference_capital": 200000
+  },
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2026-05-15"
+}

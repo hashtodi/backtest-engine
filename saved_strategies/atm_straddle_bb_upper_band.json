@@ -20,20 +20,32 @@
   "signal_logic": "AND",
   "direction": "sell",
   "trade_mode": "straddle",
-  "expiry_mode": "monthly",
+  "expiry_mode": "weekly",
   "entry": {
     "type": "direct"
   },
-  "stop_loss_pct": 2.5,
-  "target_pct": 1.0,
+  "exit": {
+    "stop_loss": {
+      "source": "percentage",
+      "value": 10.0
+    },
+    "target": {
+      "source": "percentage",
+      "value": 10.0
+    }
+  },
+  "stop_loss_pct": 10.0,
+  "target_pct": 10.0,
   "trading_start": "09:30",
   "trading_end": "14:45",
   "max_trades_per_day": null,
   "max_sl_per_day": 3,
+  "max_loss_pct_per_day": null,
+  "exclusive_option_type": false,
   "instruments": [
     "NIFTY"
   ],
-  "backtest_start": "2026-02-10",
-  "backtest_end": "2026-03-11",
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2026-04-14",
   "initial_capital": 500000
 }

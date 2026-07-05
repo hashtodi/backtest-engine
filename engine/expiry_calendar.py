@@ -17,6 +17,7 @@ Usage:
     # -> 1  (Feb 24 is 14 days away, < 15 -> code 2? No: 24-10=14 -> code=2)
 """
 
+import bisect
 import json
 import logging
 import os
@@ -166,6 +167,56 @@ def get_expiry_code(instrument: str, trading_date) -> int:
     if dte is None:
         return 1
     return 1 if dte >= 15 else 2
+
+
+def _weekly_dates(instrument: str) -> List[date]:
+    """SENSEX and NIFTY weekly dates come from config (complete, holiday-shifted
+    lists back to launch); other instruments come from the JSON calendar."""
+    inst = instrument.lower()
+    if inst == "sensex":
+        from config import SENSEX_WEEKLY_EXPIRY_DATES  # lazy import; avoids load-order issues
+        return sorted(SENSEX_WEEKLY_EXPIRY_DATES)
+    if inst == "nifty":
+        from config import NIFTY_WEEKLY_EXPIRY_DATES
+        return sorted(NIFTY_WEEKLY_EXPIRY_DATES)
+    return get_weekly_expiries(instrument)
+
+
+def get_weekly_expiry(instrument: str, trading_date) -> Optional[date]:
+    """Nearest weekly expiry on or after trading_date, or None."""
+    trading_date = _to_date(trading_date)
+    for exp in _weekly_dates(instrument):
+        if exp >= trading_date:
+            return exp
+    return None
+
+
+def days_to_weekly_expiry(instrument: str, trading_date) -> Optional[int]:
+    """Calendar days from trading_date to the nearest weekly expiry, or None."""
+    trading_date = _to_date(trading_date)
+    exp = get_weekly_expiry(instrument, trading_date)
+    if exp is None:
+        return None
+    return (exp - trading_date).days
+
+
+def trading_days_to_weekly_expiry(instrument: str, trading_date, sessions) -> Optional[int]:
+    """Trading SESSIONS from trading_date to the nearest weekly expiry, or None.
+
+    Counts the ACTUAL sessions in the half-open interval (trading_date, expiry]
+    using `sessions` — a SORTED sequence of real session dates (the dates present
+    in the options data). Weekends and holidays are excluded automatically because
+    they simply aren't sessions, so this needs no separate holiday list and stays
+    exactly consistent with the data. DTE 0 = the expiry day itself, 1 = the
+    session before it, etc.
+    """
+    trading_date = _to_date(trading_date)
+    exp = get_weekly_expiry(instrument, trading_date)
+    if exp is None:
+        return None
+    lo = bisect.bisect_right(sessions, trading_date)   # first session > trading_date
+    hi = bisect.bisect_right(sessions, exp)            # first session > expiry
+    return hi - lo
 
 
 def pick_expiry_code(instrument: str, day_data: pd.DataFrame, trading_date) -> Optional[int]:

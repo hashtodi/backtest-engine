@@ -16,6 +16,9 @@ from indicators.bollinger import BollingerBands
 from indicators.vwap import VWAP
 from indicators.supertrend import SuperTrend
 from indicators.rsi_ma import RSI_MA
+from indicators.dema import DEMA
+from indicators.wma import WMA
+from indicators.adx import ADX
 
 # Registry: maps indicator type string to class
 _REGISTRY = {
@@ -27,6 +30,9 @@ _REGISTRY = {
     "BOLLINGER": BollingerBands,
     "VWAP": VWAP,
     "SUPERTREND": SuperTrend,
+    "DEMA": DEMA,
+    "WMA": WMA,
+    "ADX": ADX,
 }
 
 

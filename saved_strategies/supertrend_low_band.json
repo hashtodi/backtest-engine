@@ -1,0 +1,21 @@
+{
+  "name": "supertrend_low_band",
+  "instrument": "NIFTY",
+  "supertrend": { "factor": 3, "atr_period": 10 },
+  "first_5min_window": { "start": "09:15", "end": "09:20" },
+  "band_pct": 5.0,
+  "dte_table": {
+    "0": { "tp_pct": 20.0, "sl_pct": 12.5 },
+    "1": { "tp_pct": 15.0, "sl_pct": 10.0 },
+    "2": { "tp_pct": 10.0, "sl_pct": 7.5 },
+    "3": { "tp_pct":  7.5, "sl_pct": 5.0 },
+    "4": { "tp_pct":  7.5, "sl_pct": 5.0 }
+  },
+  "trading": {
+    "scan_start": "09:20",
+    "force_exit": "14:45"
+  },
+  "lot_size": 1,
+  "backtest_start": "2025-01-01",
+  "backtest_end":   "2026-05-05"
+}

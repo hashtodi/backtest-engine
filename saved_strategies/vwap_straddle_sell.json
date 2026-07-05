@@ -1,0 +1,49 @@
+{
+  "name": "vwap straddle sell",
+  "description": "Custom strategy from UI",
+  "indicators": [
+    {
+      "type": "VWAP",
+      "name": "straddle_vwap",
+      "price_source": "straddle"
+    }
+  ],
+  "signal_conditions": [
+    {
+      "indicator": "straddle_vwap",
+      "compare": "price_crosses_above",
+      "price_field": "high"
+    }
+  ],
+  "signal_logic": "AND",
+  "direction": "sell",
+  "trade_mode": "straddle",
+  "expiry_mode": "weekly",
+  "entry": {
+    "type": "direct"
+  },
+  "exit": {
+    "stop_loss": {
+      "source": "percentage",
+      "value": 2.0
+    },
+    "target": {
+      "source": "percentage",
+      "value": 3.5
+    }
+  },
+  "stop_loss_pct": 2.0,
+  "target_pct": 3.5,
+  "trading_start": "09:30",
+  "trading_end": "15:15",
+  "max_trades_per_day": null,
+  "max_sl_per_day": null,
+  "max_loss_pct_per_day": null,
+  "exclusive_option_type": false,
+  "instruments": [
+    "NIFTY"
+  ],
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2025-12-31",
+  "initial_capital": 200000
+}

@@ -29,6 +29,24 @@ from engine.expiry_calendar import pick_expiry_code
 logger = logging.getLogger(__name__)
 
 
+def _clamp_sl_with_max_pct(sl_level, avg_entry, direction, max_pct):
+    """
+    Cap SL level at a maximum percentage from entry.
+
+    If the indicator/ratio SL is farther than max_pct, use the percentage cap instead.
+    Returns the tighter (closer to entry) of the two.
+    """
+    if max_pct is None or sl_level is None:
+        return sl_level
+
+    if direction == "sell":
+        max_sl = avg_entry * (1 + max_pct / 100)
+        return min(sl_level, max_sl)  # tighter = closer to entry = lower
+    else:
+        max_sl = avg_entry * (1 - max_pct / 100)
+        return max(sl_level, max_sl)  # tighter = closer to entry = higher
+
+
 def resolve_exit_levels(avg_entry, direction, exit_config, indicator_row):
     """
     Compute SL and TP price levels for this minute.
@@ -44,6 +62,7 @@ def resolve_exit_levels(avg_entry, direction, exit_config, indicator_row):
     """
     sl_cfg = exit_config["stop_loss"]
     tp_cfg = exit_config["target"]
+    max_pct = sl_cfg.get("max_pct")
 
     if sl_cfg["source"] == "ratio":
         tp_level = _resolve_one_side(tp_cfg, avg_entry, direction, "target", indicator_row)
@@ -56,12 +75,14 @@ def resolve_exit_levels(avg_entry, direction, exit_config, indicator_row):
             sl_level = avg_entry + derived_distance
         else:
             sl_level = avg_entry - derived_distance
+        sl_level = _clamp_sl_with_max_pct(sl_level, avg_entry, direction, max_pct)
         return sl_level, tp_level
 
     elif tp_cfg["source"] == "ratio":
         sl_level = _resolve_one_side(sl_cfg, avg_entry, direction, "stop_loss", indicator_row)
         if sl_level is None:
             return None, None
+        # Compute TP from unclamped SL distance (ratio reflects true risk/reward)
         anchor_distance = abs(avg_entry - sl_level)
         multiplier = tp_cfg.get("multiplier", 1.0)
         derived_distance = anchor_distance * multiplier
@@ -69,10 +90,13 @@ def resolve_exit_levels(avg_entry, direction, exit_config, indicator_row):
             tp_level = avg_entry - derived_distance
         else:
             tp_level = avg_entry + derived_distance
+        # Clamp SL after TP is derived (max_pct is just a loss cap, not a ratio input)
+        sl_level = _clamp_sl_with_max_pct(sl_level, avg_entry, direction, max_pct)
         return sl_level, tp_level
 
     else:
         sl_level = _resolve_one_side(sl_cfg, avg_entry, direction, "stop_loss", indicator_row)
+        sl_level = _clamp_sl_with_max_pct(sl_level, avg_entry, direction, max_pct)
         tp_level = _resolve_one_side(tp_cfg, avg_entry, direction, "target", indicator_row)
         return sl_level, tp_level
 
@@ -177,11 +201,28 @@ class BacktestEngine:
         # Entry config: parsed from strategy["entry"] dict
         self.entry_levels_config, self.entry_indicator = parse_entry_config(strategy)
 
+        # Look-ahead-safe indicator entry (opt-in). When True, an indicator-level
+        # entry never fills on the signal bar itself, and the resting limit uses
+        # the entry indicator's PREVIOUS-bar value (the _prev column) instead of
+        # the current bar's. Both are known before the current bar opens, so a
+        # touch during the bar is a reproducible fill. The signal itself is
+        # unchanged (still evaluated on the current bar). Default False keeps the
+        # original same-bar behavior for every existing strategy.
+        self.use_prev_bar_entry = strategy.get('use_prev_bar_entry', False)
+
         # Max trades per day (None = unlimited)
         self.max_trades_per_day = strategy.get('max_trades_per_day', None)
 
         # Max SL hits per day (None = unlimited). Stop new entries for the day.
         self.max_sl_per_day = strategy.get('max_sl_per_day', None)
+
+        # Max daily loss as sum of trade pnl% (None = unlimited).
+        # Force-closes all open positions when breached.
+        self.max_loss_pct_per_day = strategy.get('max_loss_pct_per_day', None)
+
+        # Exclusive option type: only one trade (CE or PE) at a time.
+        # When True, signal detection is paused while any position is active.
+        self.exclusive_option_type = strategy.get('exclusive_option_type', False)
 
         # Build SL/TP display string for logging
         sl_src = self.exit_config["stop_loss"]["source"]
@@ -282,24 +323,38 @@ class BacktestEngine:
         low-high range contains the indicator value, the price must have
         passed through that level. Fill at the indicator value.
 
+        When use_prev_bar_entry is set, the entry is look-ahead-safe: it is
+        skipped on the signal bar (the signal is only confirmed at that bar's
+        close), and the limit uses the indicator's previous-bar value (the
+        current bar's value isn't known until it closes). See __init__.
+
         Returns list of event messages for logging.
         """
         events = []
         if trade.status != 'WAITING_ENTRY':
             return events
 
+        # Look-ahead-safe entry: never fill on the signal bar, and read the
+        # indicator's previous-bar value (_prev) as the resting limit.
+        if self.use_prev_bar_entry:
+            if t == trade.signal_time:
+                return events
+            ind_col = f"{self.entry_indicator}_prev"
+        else:
+            ind_col = self.entry_indicator
+
         candle = self._get_contract_candle(trade, minute_data)
         if candle is None:
             return events
 
-        # Read the indicator value from this candle's row
-        ind_val = candle.get(self.entry_indicator)
+        # Read the indicator value (previous bar's when look-ahead-safe)
+        ind_val = candle.get(ind_col)
         if ind_val is None or pd.isna(ind_val):
             return events
 
         # Check: did price touch the indicator level within this candle?
         if candle['low'] <= ind_val <= candle['high']:
-            # Update the entry level target to the current indicator value
+            # Update the entry level target to this indicator value
             trade.update_entry_target(ind_val)
 
             # Fill the single entry level at the indicator price
@@ -308,7 +363,7 @@ class BacktestEngine:
                 trade.add_entry(next_level, t, ind_val)
                 events.append(
                     f"ENTRY (indicator level): "
-                    f"{self.entry_indicator}={ind_val:.2f} | "
+                    f"{ind_col}={ind_val:.2f} | "
                     f"range=[{candle['low']:.2f}, {candle['high']:.2f}] | "
                     f"filled @ {ind_val:.2f}"
                 )
@@ -318,7 +373,8 @@ class BacktestEngine:
     # ------------------------------------------
     # EXIT CHECK (SL / TP / EOD)
     # ------------------------------------------
-    def _check_exit(self, trade: Trade, minute_data, day_data, t, is_exit_time: bool):
+    def _check_exit(self, trade: Trade, minute_data, day_data, t, is_exit_time: bool,
+                     day_pnl_pct: float = 0.0):
         """
         Check SL/TP/EOD exit for this trade.
 
@@ -330,16 +386,21 @@ class BacktestEngine:
           - SL: price drops too much (candle low <= sl_price)
           - TP: price rises enough (candle high >= tp_price)
 
+        day_pnl_pct: running cumulative pnl% for the day (used for dynamic daily SL cap).
+
         Returns (closed: bool, event_msg: str or None).
         """
         if not trade.has_position():
             return False, None
 
-        # Skip SL/TP on the candle where entry just happened.
-        # Entry is at close (last price of candle), so the candle's
-        # high/low occurred before entry. Only EOD exit is allowed.
-        if not is_exit_time and trade.last_entry_time == t:
-            return False, None
+        # Entry candle: the position was just filled this minute. Single-leg
+        # entries fill intrabar at a limit price (indicator level / staggered
+        # level), not at the close, so price can still trade through the stop
+        # after the fill. On the entry candle we therefore evaluate the
+        # stop-loss conservatively (it fires if the candle traded through it)
+        # but never credit a same-bar target. If both SL and TP are touched on
+        # the entry candle, SL wins (the SL check precedes TP below).
+        is_entry_candle = trade.last_entry_time == t
 
         candle = self._get_contract_candle(trade, minute_data)
 
@@ -379,15 +440,45 @@ class BacktestEngine:
             avg_entry, self.direction, self.exit_config, candle
         )
 
+        # Dynamic daily loss cap: tighten SL based on remaining daily budget
+        if self.max_loss_pct_per_day is not None:
+            remaining = self.max_loss_pct_per_day + day_pnl_pct  # e.g., 20+(-16)=4%
+            if remaining <= 0:
+                # Already past limit — force close at current price
+                exit_reason = 'DAILY_LOSS_LIMIT'
+                exit_price = candle['close']
+                pnl = avg_entry - exit_price if self.direction == 'sell' else exit_price - avg_entry
+                pnl_pct = (pnl / avg_entry) * 100
+                msg = (f"EXIT DAILY_LOSS_LIMIT: remaining budget exhausted | "
+                       f"close={candle['close']:.2f} | pnl={pnl_pct:+.2f}%")
+                trade.close_trade(t, exit_price, exit_reason)
+                self.trades.append(trade)
+                return True, msg
+            else:
+                # Compute tighter SL from remaining budget
+                daily_sl_is_tighter = False
+                if self.direction == 'sell':
+                    daily_sl = avg_entry * (1 + remaining / 100)
+                    if sl_price is None or daily_sl < sl_price:
+                        sl_price = daily_sl
+                        daily_sl_is_tighter = True
+                else:
+                    daily_sl = avg_entry * (1 - remaining / 100)
+                    if sl_price is None or daily_sl > sl_price:
+                        sl_price = daily_sl
+                        daily_sl_is_tighter = True
+        else:
+            daily_sl_is_tighter = False
+
         if self.direction == 'sell':
             if sl_price is not None and candle['high'] >= sl_price:
-                exit_reason = 'STOP_LOSS'
+                exit_reason = 'DAILY_LOSS_LIMIT' if daily_sl_is_tighter else 'STOP_LOSS'
                 exit_price = sl_price
                 pnl_pct = -((sl_price - avg_entry) / avg_entry) * 100
-                msg = (f"EXIT STOP_LOSS: high={candle['high']:.2f} >= "
+                msg = (f"EXIT {exit_reason}: high={candle['high']:.2f} >= "
                        f"SL={sl_price:.2f} | avg={avg_entry:.2f} | "
                        f"exit @ {sl_price:.2f} | pnl={pnl_pct:+.2f}%")
-            elif tp_price is not None and candle['low'] <= tp_price:
+            elif not is_entry_candle and tp_price is not None and candle['low'] <= tp_price:
                 exit_reason = 'TARGET'
                 exit_price = tp_price
                 pnl_pct = ((avg_entry - tp_price) / avg_entry) * 100
@@ -396,13 +487,13 @@ class BacktestEngine:
                        f"exit @ {tp_price:.2f} | pnl=+{pnl_pct:.2f}%")
         else:
             if sl_price is not None and candle['low'] <= sl_price:
-                exit_reason = 'STOP_LOSS'
+                exit_reason = 'DAILY_LOSS_LIMIT' if daily_sl_is_tighter else 'STOP_LOSS'
                 exit_price = sl_price
                 pnl_pct = -((avg_entry - sl_price) / avg_entry) * 100
-                msg = (f"EXIT STOP_LOSS: low={candle['low']:.2f} <= "
+                msg = (f"EXIT {exit_reason}: low={candle['low']:.2f} <= "
                        f"SL={sl_price:.2f} | avg={avg_entry:.2f} | "
                        f"exit @ {sl_price:.2f} | pnl={pnl_pct:+.2f}%")
-            elif tp_price is not None and candle['high'] >= tp_price:
+            elif not is_entry_candle and tp_price is not None and candle['high'] >= tp_price:
                 exit_reason = 'TARGET'
                 exit_price = tp_price
                 pnl_pct = ((tp_price - avg_entry) / avg_entry) * 100
@@ -875,6 +966,8 @@ class BacktestEngine:
             # Track how many new trades (observations) were opened today
             day_trade_count = 0
             day_sl_count = 0
+            day_pnl_pct = 0.0       # cumulative sum of trade pnl% for the day
+            day_loss_limit_hit = False
 
             # Day header in detailed log
             dlog.day_header(date)
@@ -922,7 +1015,6 @@ class BacktestEngine:
                         atm_info['pe_strike'] = str(int(row['strike']))
 
                 # --- SIGNAL DETECTION (ATM only, not at exit time) ---
-                # Skip new signals if daily trade or SL limit reached
                 day_limit_hit = (
                     self.max_trades_per_day is not None
                     and day_trade_count >= self.max_trades_per_day
@@ -931,10 +1023,15 @@ class BacktestEngine:
                     self.max_sl_per_day is not None
                     and day_sl_count >= self.max_sl_per_day
                 )
+                exclusive_blocked = (
+                    self.exclusive_option_type
+                    and (active_ce is not None or active_pe is not None)
+                )
 
-                if not is_exit_time and not day_limit_hit and not sl_limit_hit:
+                if (not is_exit_time and not day_limit_hit
+                        and not sl_limit_hit and not day_loss_limit_hit
+                        and not exclusive_blocked):
                     for _, row in atm_data.iterrows():
-                        # Check if signal conditions are met
                         fired, reason = check_signal(
                             row,
                             self.signal_conditions,
@@ -944,6 +1041,10 @@ class BacktestEngine:
                             continue
 
                         opt_type = row['option_type']
+
+                        # Exclusive: skip if the other track was just filled this same minute
+                        if self.exclusive_option_type and (active_ce is not None or active_pe is not None):
+                            break
 
                         if opt_type == 'CE' and active_ce is None:
                             active_ce = Trade(
@@ -1009,10 +1110,8 @@ class BacktestEngine:
                                 f"base={row['close']:.2f} | {entry_info}"
                             )
 
-                # --- ENTRY CHECK (not at exit time) ---
-                # Uses indicator level entry if entry_indicator is set,
-                # otherwise falls back to staggered/direct entry.
-                if not is_exit_time:
+                # --- ENTRY CHECK (not at exit time, not if daily loss limit hit) ---
+                if not is_exit_time and not day_loss_limit_hit:
                     for opt_label, active in [("CE", active_ce), ("PE", active_pe)]:
                         if active is None:
                             continue
@@ -1032,23 +1131,102 @@ class BacktestEngine:
                 # --- EXIT MANAGEMENT ---
                 if active_ce:
                     closed, exit_msg = self._check_exit(
-                        active_ce, minute_data, day_data, t, is_exit_time
+                        active_ce, minute_data, day_data, t, is_exit_time,
+                        day_pnl_pct=day_pnl_pct
                     )
                     if closed:
                         if active_ce.exit_reason == 'STOP_LOSS':
                             day_sl_count += 1
+                        if active_ce.exit_reason == 'DAILY_LOSS_LIMIT':
+                            day_loss_limit_hit = True
+                        day_pnl_pct += active_ce.total_pnl_pct
                         events.append(f"CE {exit_msg}")
                         active_ce = None
+                        # Immediate daily loss check — force-close PE if limit breached
+                        # Note: day_loss_limit_hit may already be True from _check_exit
+                        if (self.max_loss_pct_per_day is not None
+                                and day_pnl_pct <= -self.max_loss_pct_per_day
+                                and active_pe is not None):
+                            day_loss_limit_hit = True
+                            events.append(
+                                f"DAILY LOSS LIMIT: cumulative pnl={day_pnl_pct:+.2f}%")
+                            if active_pe.has_position():
+                                candle = self._get_contract_candle(active_pe, minute_data)
+                                if candle is not None:
+                                    active_pe.close_trade(t, candle['close'], 'DAILY_LOSS_LIMIT')
+                                else:
+                                    active_pe.close_trade(t, active_pe.get_avg_entry_price(), 'DAILY_LOSS_LIMIT')
+                                self.trades.append(active_pe)
+                                day_pnl_pct += active_pe.total_pnl_pct
+                                events.append(f"PE EXIT DAILY_LOSS_LIMIT: pnl={active_pe.total_pnl_pct:+.2f}%")
+                            else:
+                                events.append("PE DISCARDED (daily loss limit)")
+                            active_pe = None
 
-                if active_pe:
+                if active_pe and not day_loss_limit_hit:
                     closed, exit_msg = self._check_exit(
-                        active_pe, minute_data, day_data, t, is_exit_time
+                        active_pe, minute_data, day_data, t, is_exit_time,
+                        day_pnl_pct=day_pnl_pct
                     )
                     if closed:
                         if active_pe.exit_reason == 'STOP_LOSS':
                             day_sl_count += 1
+                        if active_pe.exit_reason == 'DAILY_LOSS_LIMIT':
+                            day_loss_limit_hit = True
+                        day_pnl_pct += active_pe.total_pnl_pct
                         events.append(f"PE {exit_msg}")
                         active_pe = None
+                        # Immediate daily loss check — force-close CE if limit breached
+                        if (self.max_loss_pct_per_day is not None
+                                and day_pnl_pct <= -self.max_loss_pct_per_day
+                                and active_ce is not None):
+                            day_loss_limit_hit = True
+                            events.append(
+                                f"DAILY LOSS LIMIT: cumulative pnl={day_pnl_pct:+.2f}%")
+                            if active_ce.has_position():
+                                candle = self._get_contract_candle(active_ce, minute_data)
+                                if candle is not None:
+                                    active_ce.close_trade(t, candle['close'], 'DAILY_LOSS_LIMIT')
+                                else:
+                                    active_ce.close_trade(t, active_ce.get_avg_entry_price(), 'DAILY_LOSS_LIMIT')
+                                self.trades.append(active_ce)
+                                day_pnl_pct += active_ce.total_pnl_pct
+                                events.append(f"CE EXIT DAILY_LOSS_LIMIT: pnl={active_ce.total_pnl_pct:+.2f}%")
+                            else:
+                                events.append("CE DISCARDED (daily loss limit)")
+                            active_ce = None
+
+                # --- DAILY LOSS LIMIT CHECK ---
+                if (not day_loss_limit_hit
+                        and self.max_loss_pct_per_day is not None
+                        and day_pnl_pct <= -self.max_loss_pct_per_day):
+                    day_loss_limit_hit = True
+                    events.append(
+                        f"DAILY LOSS LIMIT: cumulative pnl={day_pnl_pct:+.2f}% "
+                        f">= -{self.max_loss_pct_per_day}% limit"
+                    )
+                    # Force-close open positions, discard waiting ones
+                    for label, active in [("CE", active_ce), ("PE", active_pe)]:
+                        if active is None:
+                            continue
+                        if active.has_position():
+                            candle = self._get_contract_candle(active, minute_data)
+                            if candle is not None:
+                                active.close_trade(t, candle['close'], 'DAILY_LOSS_LIMIT')
+                            else:
+                                avg = active.get_avg_entry_price()
+                                active.close_trade(t, avg, 'DAILY_LOSS_LIMIT')
+                            self.trades.append(active)
+                            day_pnl_pct += active.total_pnl_pct
+                            events.append(
+                                f"{label} EXIT DAILY_LOSS_LIMIT: "
+                                f"closed @ {active.exit_price:.2f} | "
+                                f"pnl={active.total_pnl_pct:+.2f}%"
+                            )
+                        else:
+                            events.append(f"{label} DISCARDED (daily loss limit, no entry)")
+                    active_ce = None
+                    active_pe = None
 
                 # --- WRITE LOG LINE ---
                 time_str = t_only.strftime('%H:%M')

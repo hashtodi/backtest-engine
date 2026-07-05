@@ -246,3 +246,56 @@ class TestResolveExitLevels:
         sl, tp = resolve_exit_levels(100.0, "buy", cfg, row)
         assert sl == pytest.approx(90.0)
         assert tp == pytest.approx(110.0)
+
+    # --- max_pct clamping tests ---
+
+    def test_max_pct_clamps_indicator_sl_buy(self):
+        """Indicator SL at 80 (20% away) clamped to max_pct=10% -> 90."""
+        cfg = {
+            "stop_loss": {"source": "indicator", "indicator": "opt_st_value", "max_pct": 10.0},
+            "target": {"source": "percentage", "value": 10.0},
+        }
+        row = {"opt_st_value": 80.0}
+        sl, tp = resolve_exit_levels(100.0, "buy", cfg, row)
+        assert sl == pytest.approx(90.0)  # clamped from 80 to 90
+
+    def test_max_pct_no_clamp_when_tighter(self):
+        """Indicator SL at 95 (5% away) not clamped when max_pct=10%."""
+        cfg = {
+            "stop_loss": {"source": "indicator", "indicator": "opt_st_value", "max_pct": 10.0},
+            "target": {"source": "percentage", "value": 10.0},
+        }
+        row = {"opt_st_value": 95.0}
+        sl, tp = resolve_exit_levels(100.0, "buy", cfg, row)
+        assert sl == pytest.approx(95.0)  # indicator is tighter, no clamp
+
+    def test_max_pct_clamps_indicator_sl_sell(self):
+        """Indicator SL at 130 (30% away) clamped to max_pct=20% -> 120."""
+        cfg = {
+            "stop_loss": {"source": "indicator", "indicator": "opt_st_value", "max_pct": 20.0},
+            "target": {"source": "percentage", "value": 10.0},
+        }
+        row = {"opt_st_value": 130.0}
+        sl, tp = resolve_exit_levels(100.0, "sell", cfg, row)
+        assert sl == pytest.approx(120.0)  # clamped from 130 to 120
+
+    def test_max_pct_with_ratio_tp(self):
+        """TP = 2x SL derived from unclamped distance. SL itself is clamped."""
+        cfg = {
+            "stop_loss": {"source": "indicator", "indicator": "opt_st_value", "max_pct": 10.0},
+            "target": {"source": "ratio", "multiplier": 2.0},
+        }
+        row = {"opt_st_value": 80.0}  # 20 away from entry
+        sl, tp = resolve_exit_levels(100.0, "buy", cfg, row)
+        assert sl == pytest.approx(90.0)   # clamped from 80 to 90
+        assert tp == pytest.approx(140.0)  # 2x unclamped distance (20) = 40, so 100+40
+
+    def test_max_pct_none_has_no_effect(self):
+        """No max_pct field means no clamping."""
+        cfg = {
+            "stop_loss": {"source": "indicator", "indicator": "opt_st_value"},
+            "target": {"source": "percentage", "value": 10.0},
+        }
+        row = {"opt_st_value": 80.0}
+        sl, tp = resolve_exit_levels(100.0, "buy", cfg, row)
+        assert sl == pytest.approx(80.0)  # no clamp

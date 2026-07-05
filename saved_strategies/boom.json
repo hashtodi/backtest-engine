@@ -42,19 +42,35 @@
   ],
   "signal_logic": "AND",
   "direction": "buy",
+  "trade_mode": "single_leg",
+  "expiry_mode": "weekly",
   "entry": {
     "type": "indicator_level",
     "indicator": "opt_st_3_10_value"
   },
+  "exit": {
+    "stop_loss": {
+      "source": "percentage",
+      "value": 5.0
+    },
+    "target": {
+      "source": "percentage",
+      "value": 7.5
+    }
+  },
   "stop_loss_pct": 5.0,
   "target_pct": 7.5,
-  "trading_start": "09:30",
-  "trading_end": "15:15",
+  "trading_start": "11:00",
+  "trading_end": "14:30",
   "max_trades_per_day": null,
+  "max_sl_per_day": null,
+  "max_loss_pct_per_day": null,
+  "exclusive_option_type": false,
+  "use_prev_bar_entry": true,
   "instruments": [
     "NIFTY"
   ],
-  "backtest_start": "2025-01-01",
-  "backtest_end": "2026-02-26",
+  "backtest_start": "2026-01-31",
+  "backtest_end": "2026-03-12",
   "initial_capital": 200000
 }

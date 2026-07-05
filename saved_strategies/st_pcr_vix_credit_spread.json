@@ -1,0 +1,44 @@
+{
+  "strategy_name": "SuperTrend + PCR + VIX Credit Spread",
+  "description": "Credit-spread variant of the major 15-min SuperTrend(7,3) flip + PCR-pre-flip + VIX-direction strategy. BULL -> bull-put (sell ATM-100 PE / buy ATM-200 PE); BEAR -> bear-call (sell ATM+100 CE / buy ATM+200 CE). Exits TP/SL/EOD only (no SuperTrend-reversal exit). Grid-search: TP = 20% of entry credit, SL = 25 pts.",
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2026-05-22",
+  "signal": {
+    "st_factor": 3.0,
+    "st_atr_period": 7,
+    "use_pcr_filter": false,
+    "pcr_bull_min": 1.1,
+    "pcr_bear_max": 0.9,
+    "use_vix_filter": true,
+    "dvix_bull_max": 0.3,
+    "dvix_bear_min": -0.3,
+    "warmup_days": 10
+  },
+  "entry": {
+    "window_start": "09:46",
+    "window_end": "14:15"
+  },
+  "exit": {
+    "tp_credit_frac": 0.20,
+    "sl_pts": 25.0,
+    "square_off_time": "15:15",
+    "max_missing_bars": 30
+  },
+  "structure": {
+    "lots": 1,
+    "sell_offset_abs": 2,
+    "buy_offset_abs": 4,
+    "min_credit_pts": 0.0,
+    "max_credit_pts": 0.0,
+    "max_trades_per_day": 0,
+    "strike_step": 50
+  },
+  "expiry": {
+    "expiry_type": "WEEK",
+    "expiry_roll": true
+  },
+  "vix_path": "data/vix/VIX_1m.parquet",
+  "sizing": {
+    "reference_capital": 200000
+  }
+}

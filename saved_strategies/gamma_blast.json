@@ -1,0 +1,18 @@
+{
+  "name": "gamma_blast",
+  "strategy_type": "gamma_blast",
+  "instruments": ["NIFTY", "SENSEX"],
+  "params": {
+    "NIFTY":  { "alert_price": null, "entry_price": null, "sl": null, "tp": null },
+    "SENSEX": { "alert_price": 20,   "entry_price": 40,   "sl": 15,   "tp": 80   }
+  },
+  "timing": {
+    "arm_start":      "10:00",
+    "arm_deadline":   "15:00",
+    "entry_deadline": "15:05",
+    "force_exit":     "15:15"
+  },
+  "lot_size": 1,
+  "backtest_start": "2025-01-01",
+  "backtest_end":   "2026-04-13"
+}

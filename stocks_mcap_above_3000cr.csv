@@ -1,0 +1,910 @@
+symbol,company_name,market_cap_cr,as_of_qtr
+RELIANCE,Reliance Industries Ltd,1818628,202603
+HDFCBANK,HDFC Bank Ltd,1126487,202603
+BHARTIARTL,Bharti Airtel Ltd,1087193,202603
+SBIN,State Bank of India,904416,202603
+ICICIBANK,ICICI Bank Ltd,862937,202603
+TCS,Tata Consultancy Services Ltd,853525,202603
+INFY,Infosys Ltd,507436,202603
+BAJFINANCE,Bajaj Finance Ltd,498670,202603
+HINDUNILVR,Hindustan Unilever Ltd,483029,202603
+LT,Larsen & Toubro Ltd,482063,202603
+LICI,Life Insurance Corporation of India,458847,202603
+SUNPHARMA,Sun Pharmaceutical Industries Ltd,421647,202603
+MARUTI,Maruti Suzuki India Ltd,386677,202603
+M&M,Mahindra & Mahindra Ltd,367606,202603
+HCLTECH,HCL Technologies Ltd,363943,202603
+AXISBANK,Axis Bank Ltd,361154,202603
+ITC,ITC Ltd,360473,202603
+NTPC,NTPC Ltd,359698,202603
+ONGC,Oil & Natural Gas Corpn Ltd,358035,202603
+KOTAKBANK,Kotak Mahindra Bank Ltd,351309,202603
+TITAN,Titan Company Ltd,350862,202603
+ULTRACEMCO,UltraTech Cement Ltd,316631,202603
+ADANIPORTS,Adani Ports & Special Economic Zone Ltd,302602,202603
+BEL,Bharat Electronics Ltd,292830,202603
+ADANIPOWER,Adani Power Ltd,290235,202603
+COALINDIA,Coal India Ltd,277477,202603
+POWERGRID,Power Grid Corporation of India Ltd,275484,202603
+JSWSTEEL,JSW Steel Ltd,274563,202603
+BAJAJFINSV,Bajaj Finserv Ltd,261146,202603
+DMART,Avenue Supermarts Ltd,258257,202603
+VEDL,Vedanta Ltd,256072,202603
+BAJAJ-AUTO,Bajaj Auto Ltd,245305,202603
+TATASTEEL,Tata Steel Ltd,239434,202603
+HAL,Hindustan Aeronautics Ltd,233165,202603
+ADANIENT,Adani Enterprises Ltd,227283,202603
+NESTLEIND,Nestle India Ltd,226538,202603
+ETERNAL,Eternal Ltd,221041,202603
+HINDZINC,Hindustan Zinc Ltd,212196,202603
+ASIANPAINT,Asian Paints Ltd,207618,202603
+HINDALCO,Hindalco Industries Ltd,198778,202603
+WIPRO,Wipro Ltd,196710,202603
+IOC,Indian Oil Corporation Ltd,191343,202603
+EICHERMOT,Eicher Motors Ltd,180632,202603
+SBILIFE,SBI Life Insurance Company Ltd,178301,202603
+GRASIM,Grasim Industries Ltd,173897,202603
+SHRIRAMFIN,Shriram Finance Ltd,164091,202603
+TVSMOTOR,TVS Motor Company Ltd,159905,202603
+DIVISLAB,Divis Laboratories Ltd,157862,202603
+INDIGO,Interglobe Aviation Ltd,152470,202603
+TMCV,Tata Motors Ltd,145305,202603
+HYUNDAI,Hyundai Motor India Ltd,144474,202603
+TORNTPHARM,Torrent Pharmaceuticals Ltd,142846,202603
+JIOFIN,Jio Financial Services Ltd,142406,202603
+ICICIAMC,ICICI Prudential Asset Management Co Ltd,138560,202603
+TECHM,Tech Mahindra Ltd,135875,202603
+ADANIGREEN,Adani Green Energy Ltd,132894,202603
+PIDILITIND,Pidilite Industries Ltd,130859,202603
+BRITANNIA,Britannia Industries Ltd,130705,202603
+VBL,Varun Beverages Ltd,129889,202603
+TATACAP,Tata Capital Ltd,129660,202603
+BANKBARODA,Bank of Baroda,127965,202603
+HDFCLIFE,HDFC Life Insurance Company Ltd,127355,202603
+MUTHOOTFIN,Muthoot Finance Ltd,126846,202603
+ABB,ABB India Ltd,125799,202603
+UNIONBANK,Union Bank of India,125306,202603
+PFC,Power Finance Corporation Ltd,125288,202603
+CUMMINSIND,Cummins India Ltd,124750,202603
+DLF,DLF Ltd,124681,202603
+BPCL,Bharat Petroleum Corporation Ltd,121934,202603
+TATAPOWER,Tata Power Company Ltd,121008,202603
+LTM,LTM Ltd,119055,202603
+TRENT,Trent Ltd,117121,202603
+PNB,Punjab National Bank,115573,202603
+CHOLAFIN,Cholamandalam Investment & Finance Company Ltd,115353,202603
+IRFC,Indian Railway Finance Corporation Ltd,114023,202603
+INDIANB,Indian Bank,113946,202603
+JINDALSTEL,Jindal Steel Ltd,113495,202603
+ADANIENSOL,Adani Energy Solutions Ltd,112224,202603
+CANBK,Canara Bank,111977,202603
+MOTHERSON,Samvardhana Motherson International Ltd,110927,202603
+INDUSTOWER,Indus Towers Ltd,110262,202603
+BSE,BSE Ltd,109299,202603
+SOLARINDS,Solar Industries India Ltd,109227,202603
+TMPV,Tata Motors Passenger Vehicles Ltd,109090,202603
+POWERINDIA,Hitachi Energy India Ltd,107924,202603
+APOLLOHOSP,Apollo Hospitals Enterprise Ltd,106809,202603
+LUPIN,Lupin Ltd,105732,202603
+DRREDDY,Dr Reddys Laboratories Ltd,104720,202603
+SIEMENS,Siemens Ltd,104473,202603
+CGPOWER,CG Power & Industrial Solutions Ltd,103252,202603
+POLYCAB,Polycab India Ltd,102994,202603
+HEROMOTOCO,Hero MotoCorp Ltd,101252,202603
+GODREJCP,Godrej Consumer Products Ltd,100759,202603
+TATACONSUM,Tata Consumer Products Ltd,100386,202603
+AMBUJACEM,Ambuja Cements Ltd,99095,202603
+CIPLA,Cipla Ltd,98796,202603
+LGEINDIA,LG Electronics India Ltd,97835,202603
+BAJAJHLDNG,Bajaj Holdings & Investment Ltd,97312,202603
+MARICO,Marico Ltd,95576,202603
+HDFCAMC,HDFC Asset Management Company Ltd,94966,202603
+GROWW,Billionbrains Garage Ventures Ltd,94167,202603
+MAXHEALTH,Max Healthcare Institute Ltd,93582,202603
+GVT&D,GE Vernova T&D India Ltd,93233,202603
+IDEA,Vodafone Idea Ltd,92417,202603
+ENRIN,Siemens Energy India Ltd,91511,202603
+ASHOKLEY,Ashok Leyland Ltd,90545,202603
+GAIL,GAIL (India) Ltd,90539,202603
+GMRAIRPORT,GMR Airports Ltd,89435,202603
+WAAREEENER,Waaree Energies Ltd,89379,202603
+UNITDSPR,United Spirits Ltd,88668,202603
+ZYDUSLIFE,Zydus Lifesciences Ltd,87663,202603
+LENSKART,Lenskart Solutions Ltd,86925,202603
+BHEL,Bharat Heavy Electricals Ltd,85502,202603
+ICICIGI,ICICI Lombard General Insurance Company Ltd,85265,202603
+BOSCHLTD,Bosch Ltd,84744,202603
+MAZDOCK,Mazagon Dock Shipbuilders Ltd,83264,202603
+SHREECEM,Shree Cement Ltd,83058,202603
+JSWENERGY,JSW Energy Ltd,83006,202603
+MANKIND,Mankind Pharma Ltd,82807,202603
+INDHOTEL,Indian Hotels Co Ltd,81242,202603
+RECLTD,REC Ltd,80353,202603
+BHARATFORG,Bharat Forge Ltd,80130,202603
+NTPCGREEN,NTPC Green Energy Ltd,77910,202603
+OIL,Oil India Ltd,77321,202603
+PERSISTENT,Persistent Systems Ltd,76796,202603
+ABCAPITAL,Aditya Birla Capital Ltd,76558,202603
+AUROPHARMA,Aurobindo Pharma Ltd,75690,202603
+BHARTIHEXA,Bharti Hexacom Ltd,75190,202603
+HAVELLS,Havells India Ltd,74700,202603
+NHPC,NHPC Ltd,74012,202603
+ICICIPRULI,ICICI Prudential Life Insurance Company Ltd,73739,202603
+DABUR,Dabur India Ltd,72792,202603
+SRF,SRF Ltd,72245,202603
+SWIGGY,Swiggy Ltd,71727,202603
+LLOYDSME,Lloyds Metals & Energy Ltd,71513,202603
+HINDPETRO,Hindustan Petroleum Corporation Ltd,71335,202603
+NATIONALUM,National Aluminium Company Ltd,70949,202603
+LODHA,Lodha Developers Ltd,67612,202603
+NYKAA,FSN E-Commerce Ventures Ltd,67343,202603
+NMDC,NMDC Ltd,67055,202603
+IDBI,IDBI Bank Ltd,66127,202603
+POLICYBZR,PB Fintech Ltd,66082,202603
+TORNTPOWER,Torrent Power Ltd,65822,202603
+MEESHO,Meesho Ltd,64171,202603
+FEDERALBNK,Federal Bank Ltd,63911,202603
+GICRE,General Insurance Corporation of India,63606,202603
+ALKEM,Alkem Laboratories Ltd,63409,202603
+NAUKRI,Info Edge (India) Ltd,63292,202603
+AUBANK,AU Small Finance Bank Ltd,63060,202603
+SAIL,Steel Authority of India Ltd,62516,202603
+BANKINDIA,Bank of India,62394,202603
+PAYTM,One 97 Communications Ltd,61358,202603
+MCX,Multi Commodity Exchange of India Ltd,60944,202603
+BAJAJHFL,Bajaj Housing Finance Ltd,60901,202603
+IOB,Indian Overseas Bank,60466,202603
+SBICARD,SBI Cards & Payment Services Ltd,60455,202603
+GLENMARK,Glenmark Pharmaceuticals Ltd,60202,202603
+LTF,L&T Finance Ltd,60155,202603
+SCHAEFFLER,Schaeffler India Ltd,60094,202603
+FORTIS,Fortis Healthcare Ltd,59989,202603
+UNOMINDA,Uno Minda Ltd,59448,202603
+FACT,Fertilizers & Chemicals Travancore Ltd,59055,202512
+DIXON,Dixon Technologies (India) Ltd,58792,202603
+INDUSINDBK,IndusInd Bank Ltd,58651,202603
+JSL,Jindal Stainless Ltd,58546,202603
+OFSS,Oracle Financial Services Software Ltd,58542,202603
+BIOCON,Biocon Ltd,58490,202603
+LINDEINDIA,Linde India Ltd,58063,202603
+COROMANDEL,Coromandel International Ltd,56391,202603
+ATGL,Adani Total Gas Ltd,56068,202603
+ABBOTINDIA,Abbott India Ltd,55086,202603
+MRF,MRF Ltd,54464,202603
+YESBANK,Yes Bank Ltd,54130,202603
+SUZLON,Suzlon Energy Ltd,53833,202603
+PHOENIXLTD,Phoenix Mills Ltd,53829,202603
+APLAPOLLO,APL Apollo Tubes Ltd,53792,202603
+LAURUSLABS,Laurus Labs Ltd,53546,202603
+RVNL,Rail Vikas Nigam Ltd,52053,202603
+OBEROIRLTY,Oberoi Realty Ltd,51526,202603
+MFSL,Max Financial Services Ltd,51489,202603
+NAM-INDIA,Nippon Life India Asset Management Ltd,51305,202603
+IDFCFIRSTB,IDFC First Bank Ltd,50595,202603
+JSWINFRA,JSW Infrastructure Ltd,50516,202603
+KRT,Knowledge Realty Trust,50313,202603
+PATANJALI,Patanjali Foods Ltd,49917,202603
+VMM,Vishal Mega Mart Ltd,49208,202603
+TIINDIA,Tube Investments of India Ltd,48699,202603
+COLPAL,Colgate-Palmolive (India) Ltd,48661,202603
+SUNDARMFIN,Sundaram Finance Ltd,48615,202603
+PRESTIGE,Prestige Estates Projects Ltd,48509,202603
+UPL,UPL Ltd,47908,202603
+BERGEPAINT,Berger Paints India Ltd,47829,202603
+SUPREMEIND,Supreme Industries Ltd,47754,202603
+,Altius Telecom Infrastructure Trust,47539,202603
+MAHABANK,Bank of Maharashtra,47165,202603
+UCOBANK,UCO Bank,44816,202503
+GODREJPROP,Godrej Properties Ltd,44315,202603
+HINDCOPPER,Hindustan Copper Ltd,43946,202603
+ASTRAL,Astral Ltd,42903,202603
+VOLTAS,Voltas Ltd,42031,202603
+PIRAMALFIN,Piramal Finance Ltd,41515,202603
+3MINDIA,3M India Ltd,41500,202406
+PIIND,P I Industries Ltd,41240,202603
+UBL,United Breweries Ltd,40775,202603
+IPCALAB,Ipca Laboratories Ltd,40669,202603
+PREMIERENE,Premier Energies Ltd,40330,202603
+BALKRISIND,Balkrishna Industries Ltd,40259,202603
+BDL,Bharat Dynamics Ltd,40208,202603
+EMBASSY,Embassy Office Parks REIT,39826,202603
+M&MFIN,Mahindra & Mahindra Financial Services Ltd,39781,202603
+APARINDS,Apar Industries Ltd,39668,202603
+IRCTC,Indian Railway Catering & Tourism Corporation Ltd,39552,202603
+JKCEMENT,J K Cements Ltd,39236,202603
+THERMAX,Thermax Ltd,39204,202603
+MPHASIS,Mphasis Ltd,39193,202603
+KALYANKJIL,Kalyan Jewellers India Ltd,38816,202603
+GLAXO,Glaxosmithkline Pharmaceuticals Ltd,38682,202603
+KEI,KEI Industries Ltd,38531,202603
+360ONE,360 ONE WAM Ltd,38496,202603
+TATACOMM,Tata Communications Ltd,38414,202603
+MOTILALOFS,Motilal Oswal Financial Services Ltd,38077,202603
+COFORGE,Coforge Ltd,37431,202603
+PETRONET,Petronet LNG Ltd,37252,202603
+NLCINDIA,NLC India Ltd,37245,202603
+ANTHEM,Anthem Biosciences Ltd,36865,202603
+AIIL,Authum Investment & Infrastructure Ltd,36546,202603
+PAGEIND,Page Industries Ltd,35543,202603
+RADICO,Radico Khaitan Ltd,35210,202603
+AJANTPHARM,Ajanta Pharma Ltd,35026,202603
+ASTERDM,Aster DM Healthcare Ltd,34794,202603
+AIAENG,AIA Engineering Ltd,33953,202603
+DALBHARAT,Dalmia Bharat Ltd,33311,202603
+FLUOROCHEM,Gujarat Fluorochemicals Ltd,33290,202603
+JBCHEPHARM,J B Chemicals & Pharmaceuticals Ltd,33126,202603
+BLUESTARCO,Blue Star Ltd,33114,202603
+LTTS,L&T Technology Services Ltd,33071,202603
+NH,Narayana Hrudayalaya Ltd,32813,202603
+MANYAVAR,Vedant Fashions Ltd,32797,202409
+CONCOR,Container Corporation Of India Ltd,32399,202603
+HUDCO,Housing & Urban Development Corporation Ltd,31910,202603
+NHIT,National Highways Infra Trust,31764,202603
+NAVINFLUOR,Navin Fluorine International Ltd,31557,202603
+MRPL,Mangalore Refinery And Petrochemicals Ltd,31529,202603
+COCHINSHIP,Cochin Shipyard Ltd,31414,202603
+DELHIVERY,Delhivery Ltd,31187,202603
+ENDURANCE,Endurance Technologies Ltd,31141,202603
+IREDA,Indian Renewable Energy Development Agency Ltd,30677,202603
+ESCORTS,Escorts Kubota Ltd,30639,202603
+PGHH,Procter & Gamble Hygiene and Health Care Ltd,30270,202603
+EMCURE,Emcure Pharmaceuticals Ltd,30258,202603
+GODIGIT,Go Digit General Insurance Ltd,30116,202603
+SONACOMS,Sona BLW Precision Forgings Ltd,29957,202603
+POONAWALLA,Poonawalla Fincorp Ltd,29944,202603
+GODFRYPHLP,Godfrey Phillips India Ltd,29220,202603
+ATHERENERG,Ather Energy Ltd,28815,202603
+ITCHOTELS,ITC Hotels Ltd,28724,202603
+JUBLFOOD,Jubilant Foodworks Ltd,28670,202603
+CENTRALBK,Central Bank of India,28467,202603
+KPRMILL,K P R Mill Ltd,28343,202603
+TVSHLTD,TVS Holdings Ltd,28259,202603
+GLAND,Gland Pharma Ltd,27964,202603
+KARURVYSYA,Karur Vysya Bank Ltd,27937,202603
+MINDSPACE,Mindspace Business Parks REIT,27910,202603
+CRISIL,CRISIL Ltd,27487,202603
+TATAINVEST,Tata Investment Corporation Ltd,27370,202603
+LICHSGFIN,LIC Housing Finance Ltd,27239,202603
+STARHEALTH,Star Health & Allied Insurance Company Ltd,26905,202603
+IRB,IRB Infrastructure Developers Ltd,26704,202603
+ZFCVINDIA,ZF Commercial Vehicle Control System India Ltd,26383,202603
+APOLLOTYRE,Apollo Tyres Ltd,26166,202603
+HEXT,Hexaware Technologies Ltd,25965,202603
+MEDANTA,Global Health Ltd,25851,202603
+CHOLAHLDNG,Cholamandalam Financial Holdings Ltd,25642,202603
+PFOCUS,Prime Focus Ltd,25569,202603
+FORCEMOT,Force Motors Ltd,25566,202603
+ABSLAMC,Aditya Birla Sun Life AMC Ltd,25401,202603
+ANANDRATHI,Anand Rathi Wealth Ltd,25204,202603
+GODREJIND,Godrej Industries Ltd,25198,202603
+PWL,Physicswallah Ltd,25025,202603
+KIMS,Krishna Institute of Medical Sciences Ltd,24911,202603
+SJVN,SJVN Ltd,24903,202603
+IRBIT,IRB Infrastructure Trust,24526,202406
+EXIDEIND,Exide Industries Ltd,24480,202603
+MSUMI,Motherson Sumi Wiring India Ltd,24464,202603
+TIMKEN,Timken India Ltd,24340,202603
+METROBRAND,Metro Brands Ltd,24328,202603
+BIRET,Brookfield India Real Estate Trust,23922,202603
+GILLETTE,Gillette India Ltd,23627,202603
+ACC,ACC Ltd,23535,202603
+CDSL,Central Depository Services (India) Ltd,23395,202603
+HONAUT,Honeywell Automation India Ltd,23290,202603
+AWL,AWL Agri Business Ltd,23121,202603
+AMBER,Amber Enterprises India Ltd,23055,202603
+ITI,ITI Ltd,23020,202603
+KAYNES,Kaynes Technology India Ltd,22978,202603
+NXST,Nexus Select Trust,22830,202603
+IKS,Inventurus Knowledge Solutions Ltd,22799,202603
+BANDHANBNK,Bandhan Bank Ltd,22755,202603
+GRSE,Garden Reach Shipbuilders & Engineers Ltd,22576,202603
+PTCIL,PTC Industries Ltd,22477,202603
+SUNTV,Sun TV Network Ltd,22329,202603
+HSCL,Himadri Speciality Chemical Ltd,22270,202603
+LALPATHLAB,Dr Lal Pathlabs Ltd,22015,202603
+RAMCOCEM,The Ramco Cements Ltd,21939,202603
+HATSUN,Hatsun Agro Product Ltd,21747,202512
+PFIZER,Pfizer Ltd,21592,202603
+SHYAMMETL,Shyam Metalics & Energy Ltd,21488,202603
+WELCORP,Welspun Corp Ltd,21459,202603
+MANAPPURAM,Manappuram Finance Ltd,21246,202603
+CPPLUS,Aditya Infotech Ltd,21176,202603
+GUJGASLTD,Gujarat Gas Ltd,21147,202603
+NUVAMA,Nuvama Wealth Management Ltd,21028,202603
+AEGISLOG,Aegis Logistics Ltd,21013,202603
+ACUTAAS,Acutaas Chemicals Ltd,20945,202603
+NBCC,NBCC (India) Ltd,20928,202603
+BAYERCROP,Bayer CropScience Ltd,20905,202603
+TENNIND,Tenneco Clean Air India Ltd,20765,202603
+ANGELONE,Angel One Ltd,20727,202603
+TATATECH,Tata Technologies Ltd,20683,202603
+SAILIFE,Sai Life Sciences Ltd,20554,202603
+AFFLE,Affle 3i Ltd,20393,202603
+IGL,Indraprastha Gas Ltd,20391,202603
+SCHNEIDER,Schneider Electric Infrastructure Ltd,20185,202603
+GESHIP,Great Eastern Shipping Company Ltd,20182,202603
+ASAHIINDIA,Asahi India Glass Ltd,20027,202603
+CESC,CESC Ltd,19910,202603
+PNBHOUSING,PNB Housing Finance Ltd,19717,202603
+CUBEINVIT,Cube Highways Trust,19623,202603
+AADHARHFC,Aadhar Housing Finance Ltd,19598,202603
+NIACL,New India Assurance Company Ltd,19422,202603
+ASTRAZEN,Astrazeneca Pharma India Ltd,19399,202603
+KIRLOSENG,Kirloskar Oil Engines Ltd,19286,202603
+KIOCL,KIOCL Ltd,19238,202603
+WOCKPHARMA,Wockhardt Ltd,19129,202603
+INDIGRID,IndiGrid Infrastructure Trust,18819,202603
+ATUL,Atul Ltd,18763,202603
+SAGILITY,Sagility Ltd,18697,202603
+CREDITACC,CreditAccess Grameen Ltd,18508,202603
+IIFL,IIFL Finance Ltd,18277,202603
+URBANCO,Urban Company Ltd,18275,202603
+SUMICHEM,Sumitomo Chemical India Ltd,18204,202603
+PPLPHARMA,Piramal Pharma Ltd,18138,202603
+GPIL,Godawari Power & Ispat Ltd,18066,202603
+KPIL,Kalpataru Projects International Ltd,18057,202603
+GMDCLTD,Gujarat Mineral Development Corporation Ltd,17991,202603
+ERIS,ERIS Lifesciences Ltd,17986,202603
+SARDAEN,Sarda Energy & Minerals Ltd,17975,202603
+AEGISVOPAK,Aegis Vopak Terminals Ltd,17922,202603
+RBLBANK,RBL Bank Ltd,17916,202603
+PINELABS,Pine Labs Ltd,17896,202603
+CUB,City Union Bank Ltd,17826,202603
+NETWEB,Netweb Technologies India Ltd,17637,202603
+DEEPAKNTR,Deepak Nitrite Ltd,17560,202603
+NATCOPHARM,Natco Pharma Ltd,17463,202603
+DCMSHRIRAM,DCM Shriram Ltd,17434,202603
+KPITTECH,KPIT Technologies Ltd,17407,202603
+GSPL,Gujarat State Petronet Ltd,17285,202512
+EMAMILTD,Emami Ltd,17159,202603
+CASTROLIND,Castrol India Ltd,17156,202603
+EIHOTEL,EIH Ltd,17110,202603
+CHAMBLFERT,Chambal Fertilisers & Chemicals Ltd,17082,202603
+HBLENGINE,HBL Engineering Ltd,17041,202603
+DATAPATTNS,Data Patterns (India) Ltd,16987,202603
+ONESOURCE,OneSource Specialty Pharma Ltd,16876,202603
+CIEINDIA,CIE Automotive India Ltd,16874,202603
+CRAFTSMAN,Craftsman Automation Ltd,16673,202603
+TRAVELFOOD,Travel Food Services Ltd,16573,202603
+BELRISE,Belrise Industries Ltd,16552,202603
+JYOTICNC,Jyoti CNC Automation Ltd,16423,202603
+VERTIS,Vertis Infrastructure Trust,16096,202603
+AVANTIFEED,Avanti Feeds Ltd,15958,202603
+CGCL,Capri Global Capital Ltd,15957,202603
+ELITECON,Elitecon International Ltd,15953,202512
+BRIGADE,Brigade Enterprises Ltd,15919,202603
+ACMESOLAR,ACME Solar Holdings Ltd,15846,202603
+,National Securities Depository Ltd,15823,202603
+SUNDRMFAST,Sundram Fasteners Ltd,15785,202603
+JAINREC,Jain Resource Recycling Ltd,15741,202603
+SYNGENE,Syngene International Ltd,15725,202603
+BIKAJI,Bikaji Foods International Ltd,15593,202603
+REDINGTON,Redington Ltd,15592,202603
+CENTURYPLY,Century Plyboards (India) Ltd,15587,202603
+CAMS,Computer Age Management Services Ltd,15521,202603
+RATNAMANI,Ratnamani Metals & Tubes Ltd,15421,202603
+NEULANDLAB,Neuland Laboratories Ltd,15412,202603
+GRANULES,Granules India Ltd,15392,202603
+CHALET,Chalet Hotels Ltd,15299,202603
+VTL,Vardhman Textiles Ltd,15186,202603
+KFINTECH,KFin Technologies Ltd,15108,202603
+NAVA,Nava Ltd,15033,202603
+JSWCEMENT,JSW Cement Ltd,15031,202603
+EMMVEE,Emmvee Photovoltaic Power Ltd,14996,202603
+GRINDWELL,Grindwell Norton Ltd,14981,202603
+SYRMA,Syrma SGS Technology Ltd,14916,202603
+TATACHEM,Tata Chemicals Ltd,14856,202603
+ELGIEQUIP,Elgi Equipments Ltd,14816,202603
+CARBORUNIV,Carborundum Universal Ltd,14790,202603
+RRKABEL,R R Kabel Ltd,14668,202603
+KAJARIACER,Kajaria Ceramics Ltd,14637,202603
+PSB,Punjab & Sind Bank,14624,202603
+ANANTRAJ,Anant Raj Ltd,14597,202603
+AETHER,Aether Industries Ltd,14525,202603
+AARTIIND,Aarti Industries Ltd,14462,202603
+FSL,Firstsource Solutions Ltd,14441,202603
+CHENNPETRO,Chennai Petroleum Corporation Ltd,14405,202603
+CROMPTON,Crompton Greaves Consumer Electricals Ltd,14388,202603
+SANOFI,Sanofi India Ltd,14097,202412
+TRITURBINE,Triveni Turbine Ltd,13971,202603
+BHARATCOAL,Bharat Coking Coal Ltd,13943,202603
+ANURAS,Anupam Rasayan India Ltd,13931,202603
+DOMS,Doms Industries Ltd,13919,202603
+BASF,BASF India Ltd,13915,202603
+SPLPETRO,Supreme Petrochem Ltd,13904,202603
+CCL,CCL Products (India) Ltd,13864,202603
+EIDPARRY,EID Parry (India) Ltd,13789,202603
+KSB,KSB Ltd,13788,202603
+IGIL,International Gemological Institute Limited,13743,202603
+VGUARD,V-Guard Industries Ltd,13740,202603
+VINATIORGA,Vinati Organics Ltd,13691,202603
+THELEELA,Leela Palaces Hotels & Resorts Ltd,13625,202603
+KEC,KEC International Ltd,13620,202603
+CHOICEIN,Choice International Ltd,13616,202603
+ZYDUSWELL,Zydus Wellness Ltd,13557,202603
+KANSAINER,Kansai Nerolac Paints Ltd,13509,202603
+PGEL,PG Electroplast Ltd,13427,202603
+CANHLIFE,Canara HSBC Life Insurance Company Ltd,13338,202603
+TDPOWERSYS,TD Power Systems Ltd,13293,202603
+SHRIPISTON,Shriram Pistons & Rings Ltd,13275,202603
+,RRP Semiconductor Ltd,13265,202603
+GALLANTT,Gallantt Ispat Ltd.,13255,202603
+CEATLTD,CEAT Ltd,13115,202603
+FRACTAL,Fractal Analytics Ltd,13087,202603
+ECLERX,eClerx Services Ltd,13053,202603
+INOXWIND,Inox Wind Ltd,13034,202603
+APLLTD,Alembic Pharmaceuticals Ltd,13010,202603
+JUBLPHARMA,Jubilant Pharmova Ltd,13006,202603
+NIVABUPA,Niva Bupa Health Insurance Company Ltd,12954,202603
+SANSERA,Sansera Engineering Ltd,12937,202603
+JSWDULUX,JSW Dulux Ltd,12937,202603
+IFCI,IFCI Ltd,12919,202603
+AGARWALEYE,Dr Agarwals Health Care Ltd,12867,202603
+VENTIVE,Ventive Hospitality Ltd,12817,202603
+LMW,LMW Ltd,12761,202603
+RUBICON,Rubicon Research Ltd,12727,202603
+SOBHA,Sobha Ltd,12682,202603
+MAHSCOOTER,Maharashtra Scooters Ltd,12674,202603
+LTFOODS,L T Foods Ltd,12612,202603
+JSWHL,JSW Holdings Ltd,12565,202603
+ABREL,Aditya Birla Real Estate Ltd,12533,202603
+TEGA,Tega Industries Ltd,12440,202603
+SAMMAANCAP,Sammaan Capital Ltd,12389,202603
+ARE&M,Amara Raja Energy & Mobility Ltd,12312,202603
+JBMA,JBM Auto Ltd,12187,202603
+J&KBANK,Jammu and Kashmir Bank Ltd,12113,202603
+MINDACORP,Minda Corporation Ltd,12112,202603
+FINEORG,Fine Organic Industries Ltd,12103,202603
+POLYMED,Poly Medicure Ltd,12070,202603
+JYOTHYLAB,Jyothy Labs Ltd,12068,202503
+GRAPHITE,Graphite India Ltd,12046,202603
+UTIAMC,UTI Asset Management Company Ltd,12045,202603
+ALIVUS,Alivus Life Sciences Ltd,11957,202603
+INDIAMART,Indiamart Intermesh Ltd,11921,202603
+USHAMART,Usha Martin Ltd,11906,202603
+FINCABLES,Finolex Cables Ltd,11866,202603
+GABRIEL,Gabriel India Ltd,11858,202603
+RAINBOW,Rainbow Childrens Medicare Ltd,11814,202603
+JINDALSAW,Jindal Saw Ltd,11719,202603
+ZENSARTECH,Zensar Technologies Ltd,11707,202603
+DEVYANI,Devyani International Ltd,11651,202603
+COHANCE,Cohance Lifesciences Ltd,11550,202603
+ZENTEC,Zen Technologies Ltd,11538,202603
+TRIDENT,Trident Ltd,11486,202603
+TBOTEK,TBO Tek Ltd,11484,202603
+DEEPAKFERT,Deepak Fertilisers & Petrochemicals Corp Ltd,11480,202603
+TECHNOE,Techno Electric & Engineering Company Ltd,11458,202603
+CAPLIPOINT,Caplin Point Laboratories Ltd,11441,202603
+INTERISE,Interise Trust,11440,202509
+BEML,BEML Ltd,11391,202603
+ABDL,Allied Blenders & Distillers Ltd,11318,202603
+PRIVISCL,Privi Speciality Chemicals Ltd,11312,202603
+BLUEDART,Blue Dart Express Ltd,11234,202603
+CUPID,Cupid Ltd,11181,202603
+PARADEEP,Paradeep Phosphates Ltd,11134,202603
+INGERRAND,Ingersoll-Rand (India) Ltd,11044,202603
+CMPDI,Central Mine Planning & Design Institute Ltd,10999,202603
+JKTYRE,JK Tyre & Industries Ltd,10991,202603
+HAPPYFORGE,Happy Forgings Ltd,10924,202603
+FIRSTCRY,Brainbees Solutions Ltd,10880,202603
+JMFINANCIL,JM Financial Ltd,10860,202603
+IRCON,Ircon International Ltd,10849,202603
+ABLBL,Aditya Birla Lifestyle Brands Ltd,10747,202603
+MTARTECH,MTAR Technologies Ltd,10671,202603
+INDIACEM,India Cements Ltd,10670,202603
+INOXINDIA,Inox India Ltd,10644,202603
+CONCORDBIO,Concord Biotech Ltd,10628,202603
+THANGAMAYL,Thangamayil Jewellery Ltd,10628,202603
+KIRLOSBROS,Kirloskar Brothers Ltd,10625,202603
+CANFINHOME,Can Fin Homes Ltd,10568,202603
+BLACKBUCK,Blackbuck Ltd,10481,202603
+INDGN,Indegene Ltd,10468,202603
+HEG,HEG Ltd,10466,202603
+WELSPUNLIV,Welspun Living Ltd,10436,202603
+AAVAS,AAVAS Financiers Ltd,10412,202403
+FIVESTAR,Five-Star Business Finance Ltd,10409,202603
+HFCL,HFCL Ltd,10394,202603
+LUMAXTECH,Lumax Auto Technologies Ltd,10383,202603
+TI,Tilaknagar Industries Ltd,10285,202603
+GODREJAGRO,Godrej Agrovet Ltd,10277,202603
+SKFINDUS,SKF India (Industrial) Ltd,10274,202603
+ENGINERSIN,Engineers India Ltd,10257,202603
+SCI,Shipping Corporation of India Ltd,10238,202603
+IEX,Indian Energy Exchange Ltd,10228,202603
+JWL,Jupiter Wagons Ltd,10174,202603
+OLAELEC,Ola Electric Mobility Ltd,10066,202603
+MEDPLUS,Medplus Health Services Ltd,10058,202603
+BALRAMCHIN,Balrampur Chini Mills Ltd,10047,202603
+NUVOCO,Nuvoco Vistas Corporation Ltd,10041,202603
+WHIRLPOOL,Whirlpool of India Ltd,10027,202603
+SIGNATURE,SignatureGlobal India Ltd,10025,202603
+,Maple Infrastructure Trust,10022,202603
+AFCONS,Afcons Infrastructure Ltd,9963,202603
+CAMPUS,Campus Activewear Ltd,9895,202206
+SANOFICONR,Sanofi Consumer Healthcare India Ltd,9889,202603
+UJJIVANSFB,Ujjivan Small Finance Bank Ltd,9817,202603
+APTUS,Aptus Value Housing Finance India Ltd,9752,202603
+GRAVITA,Gravita India Ltd,9734,202603
+NSLNISP,NMDC Steel Ltd,9727,202603
+BLS,BLS International Services Ltd,9703,202603
+HONASA,Honasa Consumer Ltd,9701,202603
+JPPOWER,Jaiprakash Power Ventures Ltd,9615,202603
+SBFC,SBFC Finance Ltd,9589,202503
+AZAD,Azad Engineering Ltd,9583,202603
+SHAILY,Shaily Engineering Plastics Ltd,9580,202603
+PCBL,PCBL Chemical Ltd,9532,202603
+CORONA,Corona Remedies Ltd,9517,202603
+EDELWEISS,Edelweiss Financial Services Ltd,9442,202603
+HOMEFIRST,Home First Finance Company India Ltd,9418,202603
+SWANCORP,Swan Corp Ltd,9404,202603
+BSOFT,Birlasoft Ltd,9294,202603
+FINPIPE,Finolex Industries Ltd,9261,202603
+ATLANTAELE,Atlanta Electricals Ltd,9252,202603
+BBTC,The Bombay Burmah Trading Corporation Ltd,9215,202603
+TMB,Tamilnad Mercantile Bank Ltd,9189,202603
+MGL,Mahanagar Gas Ltd,9157,202603
+PVRINOX,PVR Inox Ltd,9022,202603
+PRUDENT,Prudent Corporate Advisory Services Ltd,9009,202603
+CLEANMAX,Clean Max Enviro Energy Solutions Ltd,9000,202603
+METROPOLIS,Metropolis Healthcare Ltd,8993,202603
+SOUTHBANK,South Indian Bank Ltd,8952,202603
+ACE,Action Construction Equipment Ltd,8919,202603
+ARVIND,Arvind Ltd,8895,202603
+CERA,Cera Sanitaryware Ltd,8869,202506
+VIJAYA,Vijaya Diagnostic Centre Ltd,8864,202603
+VESUVIUS,Vesuvius India Ltd,8814,202603
+VOLTAMP,Voltamp Transformers Ltd,8787,202603
+CEMPRO,Cemindia Projects Ltd,8771,202603
+ASKAUTOLTD,ASK Automotive Ltd,8754,202603
+JUBLINGREA,Jubilant Ingrevia Ltd,8659,202603
+STAR,Strides Pharma Science Ltd,8644,202603
+JAIBALAJI,Jai Balaji Industries Ltd,8621,202509
+STLTECH,Sterlite Technologies Ltd,8613,202603
+NAZARA,Nazara Technologies Ltd,8608,202603
+CELLO,Cello World Ltd,8570,202603
+EUREKAFORB,Eureka Forbes Ltd,8513,202603
+RKFORGE,Ramkrishna Forgings Ltd,8483,202603
+RITES,Rites Ltd,8439,202603
+KTKBANK,Karnataka Bank Ltd,8435,202603
+RPOWER,Reliance Power Ltd,8420,202603
+SWANDEF,Swan Defence and Heavy Industries Ltd,8393,202603
+CYIENT,Cyient Ltd,8366,202603
+INTELLECT,Intellect Design Arena Ltd,8362,202603
+SANDUMA,Sandur Manganese & Iron Ores Ltd,8349,202603
+JLHL,Jupiter Life Line Hospitals Ltd,8345,202603
+TRIVENI,Triveni Engineering and Industries Ltd,8291,202603
+STARCEMENT,Star Cement Ltd,8225,202603
+NCC,NCC Ltd,8219,202603
+PGINVIT,Powergrid Infrastructure Investment Trust,8210,202603
+PARKHOSPS,Park Medi World Ltd,8192,202603
+WAAREERTL,Waaree Renewable Technologies Ltd,8163,202603
+INDIASHLTR,India Shelter Finance Corporation Ltd,8132,202603
+AEQUS,Aequs Ltd,8115,202603
+ASTRAMICRO,Astra Microwave Products Ltd,8070,202603
+ORKLAINDIA,Orkla India Ltd,8010,202603
+VIYASH,Viyash Scientific Ltd,8003,202603
+PGHL,Procter & Gamble Health Ltd,7965,202603
+ELECON,Elecon Engineering Company Ltd,7961,202603
+LEMONTREE,Lemon Tree Hotels Ltd,7958,202603
+OLECTRA,Olectra Greentech Ltd,7932,202603
+BBOX,Black Box Ltd,7930,202603
+CARTRADE,Cartrade Tech Ltd,7900,202603
+GRWRHITECH,Garware Hi Tech Films Ltd,7860,202603
+SHARDACROP,Sharda Cropchem Ltd,7846,202603
+HCG,Healthcare Global Enterprises Ltd,7834,202603
+MMTC,MMTC Ltd,7826,202603
+TIMETECHNO,Time Technoplast Ltd,7809,202603
+BATAINDIA,Bata India Ltd,7808,202603
+KAMAHOLD,Kama Holdings Ltd,7736,202603
+GRINFRA,G R Infraprojects Ltd,7733,202603
+TITAGARH,Titagarh Rail Systems Ltd,7731,202603
+IXIGO,Le Travenues Technology Ltd,7644,202603
+TARIL,Transformers & Rectifiers India Ltd,7639,202603
+ESABINDIA,Esab India Ltd,7627,202603
+IIFLCAPS,IIFL Capital Services Ltd,7596,202603
+WESTLIFE,Westlife Foodworld Ltd,7541,202603
+MAHSEAMLES,Maharashtra Seamless Ltd,7504,202603
+TSFINV,Tsf Investments Ltd,7499,202603
+AKUMS,Akums Drugs & Pharmaceuticals Ltd,7335,202603
+ACI,Archean Chemical Industries Ltd,7244,202603
+BANCOINDIA,Banco Products (India) Ltd,7217,202603
+WABAG,Va Tech Wabag Ltd,7215,202603
+RAILTEL,Railtel Corporation of India Ltd,7181,202309
+NESCO,NESCO Ltd,7157,202603
+VARROC,Varroc Engineering Ltd,7152,202603
+PNGJL,P N Gadgil Jewellers Ltd,7152,202603
+MARKSANS,Marksans Pharma Ltd,7121,202603
+BLUESTONE,Bluestone Jewellery & Lifestyle Ltd,7118,202603
+AMAGI,Amagi Media Labs Ltd,7100,202603
+TCI,Transport Corporation of India Ltd,7065,202603
+SAFARI,Safari Industries (India) Ltd,7012,202603
+GMRP&UI,GMR Power & Urban Infra Ltd,6998,202603
+SKFINDIA,SKF India Ltd,6995,202603
+CLEAN,Clean Science & Technology Ltd,6979,202603
+JAYNECOIND,Jayaswal Neco Industries Ltd,6971,202603
+RHIM,RHI Magnesita India Ltd,6962,202603
+KPIGREEN,KPI Green Energy Ltd,6936,202603
+JKLAKSHMI,JK Lakshmi Cement Ltd,6930,202603
+ZEEL,Zee Entertainment Enterprises Ltd,6918,202603
+GPPL,Gujarat Pipavav Port Ltd,6887,202603
+TEJASNET,Tejas Networks Ltd,6886,202603
+V2RETAIL,V2 Retail Ltd,6875,202603
+SHILPAMED,Shilpa Medicare Ltd,6819,202603
+JUSTDIAL,Just Dial Ltd,6819,202403
+MANORAMA,Manorama Industries Ltd,6755,202603
+KIRLPNU,Kirloskar Pneumatic Company Ltd,6733,202603
+RELIGARE,Religare Enterprises Ltd,6726,202603
+JSLL,Jeena Sikho Lifecare Ltd,6711,202603
+SUDEEPPHRM,Sudeep Pharma Ltd,6691,202603
+SHADOWFAX,Shadowfax Technologies Ltd,6685,202603
+SEDEMAC,Sedemac Mechatronics Ltd,6675,202603
+RIIT,RaajMarg Infra Investment Trust,6613,202603
+,Midwest Gold Ltd,6607,202603
+ABFRL,Aditya Birla Fashion & Retail Ltd,6579,202603
+EPL,EPL Ltd,6563,202603
+GENUSPOWER,Genus Power Infrastructures Ltd,6553,202603
+APOLLO,Apollo Micro Systems Ltd,6510,202603
+ELANTAS,Elantas Beck India Ltd,6503,202603
+AXISCADES,AXISCADES Technologies Ltd,6493,202603
+IMFA,Indian Metals & Ferro Alloys Ltd,6486,202603
+KRBL,KRBL Ltd,6458,202603
+VIKRAMSOLR,Vikram Solar Ltd,6449,202603
+PCJEWELLER,PC Jeweller Ltd,6444,202603
+BIRLACORPN,Birla Corporation Ltd,6426,202603
+ISGEC,ISGEC Heavy Engineering  Ltd,6343,202603
+TIPSMUSIC,Tips Music Ltd,6329,202603
+DBL,Dilip Buildcon Ltd,6305,202603
+WEWORK,Wework India Management Ltd,6300,202603
+PRSMJOHNSN,Prism Johnson Ltd,6297,202603
+DIACABS,Diamond Power Infrastructure Ltd,6295,202603
+MAHLIFE,Mahindra Lifespace Developers Ltd,6279,202603
+PGIL,Pearl Global Industries Ltd,6265,202603
+PRICOLLTD,Pricol Ltd,6259,202603
+GAEL,Gujarat Ambuja Exports Ltd,6240,202603
+QPOWER,Quality Power Electrical Equipments Ltd,6217,202603
+BENGALASM,Bengal & Assam Company Ltd,6204,202603
+AVALON,Avalon Technologies Ltd,6204,202603
+LLOYDSENT,Lloyds Enterprises Ltd,6183,202603
+AVL,Aditya Vision Ltd,6176,202603
+SAREGAMA,Saregama India Ltd,6153,202603
+TTML,Tata Teleservices (Maharashtra) Ltd,6117,202603
+DYNAMATECH,Dynamatic Technologies Ltd,6116,202603
+HNDFDS,Hindustan Foods Ltd,6095,202603
+SHREMINVIT,Shrem InvIT,6078,202603
+REDTAPE,Redtape Ltd,6067,202603
+TRANSRAILL,Transrail Lighting Ltd,6066,202603
+UTLSOLAR,Fujiyama Power Systems Ltd,6013,202603
+GARFIBRES,Garware Technical Fibres Ltd,5995,202603
+YATHARTH,Yatharth Hospital & Trauma Care Services Ltd,5947,202603
+RELAXO,Relaxo Footwears Ltd,5922,202603
+EQUITASBNK,Equitas Small Finance Bank Ltd,5896,202603
+CSBBANK,CSB Bank Ltd,5895,202603
+RCF,Rashtriya Chemicals & Fertilizers Ltd,5889,202603
+KENNAMET,Kennametal India Ltd,5885,202209
+TTKPRESTIG,TTK Prestige Ltd,5884,202603
+SUDARSCHEM,Sudarshan Chemical Industries Ltd,5875,202603
+SONATSOFTW,Sonata Software Ltd,5869,202603
+DODLA,Dodla Dairy Ltd,5858,202603
+PRAJIND,Praj Industries Ltd,5847,202603
+SGMART,SG Mart Ltd,5845,202603
+RENUKA,Shree Renuka Sugars Ltd,5845,202603
+DHANUKA,Dhanuka Agritech Ltd,5826,202503
+ETHOSLTD,Ethos Ltd,5820,202603
+KIRLFER,Kirloskar Ferrous Industries Ltd,5753,202603
+WELENT,Welspun Enterprises Ltd,5750,202603
+KINGFA,Kingfa Science & Technology (India) Ltd,5737,202603
+NEWGEN,Newgen Software Technologies Ltd,5723,202603
+INDIAGLYCO,India Glycols Ltd,5691,202603
+SHAKTIPUMP,Shakti Pumps (India) Ltd,5681,202603
+BLUEJET,Blue Jet Healthcare Ltd,5677,202603
+THYROCARE,Thyrocare Technologies Ltd,5567,202603
+JKPAPER,JK Paper Ltd,5559,202603
+ALOKINDS,Alok Industries Ltd,5556,202603
+GSFC,Gujarat State Fertilizers & Chemicals Ltd,5547,202603
+SUPRAJIT,Suprajit Engineering Ltd,5498,202603
+HAPPSTMNDS,Happiest Minds Technologies Ltd,5498,202603
+BECTORFOOD,Mrs Bectors Food Specialities Ltd,5497,202603
+KOVAI,Kovai Medical Center & Hospital Ltd,5495,202603
+EMBDL,Embassy Developments Ltd,5490,202603
+SMLMAH,SML Mahindra Ltd,5488,202603
+POWERMECH,Power Mech Projects Ltd,5475,202603
+INDUSINVIT,Indus Infra Trust,5462,202603
+INOXGREEN,Inox Green Energy Services Ltd,5460,202603
+ENTERO,Entero Healthcare Solutions Ltd,5421,202603
+ARVINDFASN,Arvind Fashions Ltd,5382,202603
+GNFC,Gujarat Narmada Valley Fertilizers & Chemicals Ltd,5377,202603
+GALAXYSURF,Galaxy Surfactants Ltd,5370,202603
+AARTIPHARM,Aarti Pharmalabs Ltd,5342,202603
+GOKULAGRO,Gokul Agro Resources Ltd,5338,202603
+KWIL,Kwality Walls India Ltd,5324,202603
+KALPATARU,Kalpataru Ltd,5315,202603
+KRN,KRN Heat Exchanger and Refrigeration Ltd,5295,202603
+BORORENEW,Borosil Renewables Ltd,5292,202603
+LLOYDSENGG,Lloyds Engineering Works Ltd,5275,202603
+SHREEJISPG,Shreeji Shipping Global Ltd,5262,202603
+LGBBROSLTD,L G Balakrishnan & Bros Ltd,5249,202603
+FDC,FDC Ltd,5229,202603
+GREENLAM,Greenlam Industries Ltd,5222,202603
+LATENTVIEW,Latent View Analytics Ltd,5199,202603
+RATEGAIN,Rategain Travel Technologies Ltd,5189,202603
+,Energy Infrastructure Trust,5177,202603
+PICCADIL,Piccadily Agro Industries Ltd,5104,202603
+DCBBANK,DCB Bank Ltd,5101,202603
+SFL,Sheela Foam Ltd,5098,202603
+MASFIN,MAS Financial Services Ltd,5082,202603
+MIDHANI,Mishra Dhatu Nigam Ltd,5076,202603
+NEPHROPLUS,Nephrocare Health Services Ltd,5073,202603
+FIEMIND,Fiem Industries Ltd,5039,202603
+LOTUSDEV,Sri Lotus Developers & Realty Ltd,5027,202603
+MAXESTATES,Max Estates Ltd,5024,202603
+TANLA,Tanla Platforms Ltd,5012,202603
+WAKEFIT,Wakefit Innovations Ltd,5011,202603
+SJS,S J S Enterprises Ltd,4958,202603
+TIIL,Technocraft Industries (India) Ltd,4957,202603
+ICIL,Indo Count Industries Ltd,4947,202603
+SKYGOLD,Sky Gold & Diamonds Ltd,4927,202603
+NDRINVIT,NDR INVIT Trust,4911,202603
+ICRA,ICRA Ltd,4829,202603
+SAPPHIRE,Sapphire Foods India Ltd,4816,202603
+PARAS,Paras Defence and Space Technologies Ltd,4800,202603
+SAATVIKGL,Saatvik Green Energy Ltd,4784,202603
+IRBINVIT,IRB InvIT Fund,4765,202603
+SYMPHONY,Symphony Ltd,4719,202603
+BANARISUG,Bannari Amman Sugars Ltd,4719,202603
+RUSTOMJEE,Keystone Realtors Ltd,4712,202603
+CEIGALL,Ceigall India Ltd,4709,202603
+IONEXCHANG,Ion Exchange (India) Ltd,4699,202603
+BALUFORGE,Balu Forge Industries Ltd,4689,202603
+,Dhenu Buildcon Infra Ltd,4676,202603
+PTC,PTC India Ltd,4667,202603
+CCAVENUE,AvenuesAI Ltd,4664,202603
+FEDFINA,Fedbank Financial Services Ltd,4642,202603
+RALLIS,Rallis India Ltd,4627,202203
+AJAXENGG,Ajax Engineering Ltd,4604,202603
+PILANIINVS,Pilani Investment & Industries Corporation Ltd,4593,202603
+RAYMONDLSL,Raymond Lifestyle Ltd,4592,202603
+MHRIL,Mahindra Holidays & Resorts India Ltd,4570,202603
+SENCO,Senco Gold Ltd,4566,202603
+ELECTCAST,Electrosteel Castings Ltd,4551,202603
+DBREALTY,Valor Estate Ltd,4548,202603
+SUPRIYA,Supriya Lifescience Ltd,4548,202603
+SPICEJET,SpiceJet Ltd,4539,202512
+BAJAJCON,Bajaj Consumer Care Ltd,4532,202603
+NIRLON,Nirlon Ltd,4517,202603
+CIGNITITEC,Cigniti Technologies Ltd,4504,202512
+JAMNAAUTO,Jamna Auto Industries Ltd,4480,202603
+ASHAPURMIN,Ashapura Minechem Ltd,4399,202603
+MAPMYINDIA,C.E. Info Systems Ltd,4391,202603
+GULFOILLUB,Gulf Oil Lubricants India Ltd,4380,202603
+CMSINFO,CMS Info Systems Ltd,4371,202603
+AHLUCONT,Ahluwalia Contracts (India) Ltd,4369,202603
+CRAMC,Canara Robeco Asset Management Company Ltd,4345,202603
+LUMAXIND,Lumax Industries Ltd,4340,202603
+CARERATING,CARE Ratings Ltd,4326,202603
+VIPIND,V I P Industries Ltd,4294,202603
+GOKEX,Gokaldas Exports Ltd,4255,202603
+NETWORK18,Network 18 Media & Investments Ltd,4245,202603
+GANESHHOU,Ganesh Housing Ltd,4231,202603
+JUNIPER,Juniper Hotels Ltd,4228,202603
+E2E,E2E Networks Ltd,4222,202603
+THOMASCOOK,Thomas Cook (India) Ltd,4212,202603
+SEITINVIT,Sustainable Energy Infra Trust,4212,202603
+SMARTWORKS,Smartworks Coworking Spaces Ltd,4193,202603
+CHEMPLASTS,Chemplast Sanmar Ltd,4179,202603
+GUJALKALI,Gujarat Alkalies & Chemicals Ltd,4174,202603
+MASTEK,Mastek Ltd,4164,202603
+VSTTILLERS,VST Tillers Tractors Ltd,4154,202603
+MIDWESTLTD,Midwest Ltd,4143,202603
+SUBROS,Subros Ltd,4141,202603
+PNCINFRA,PNC Infratech Ltd,4106,202603
+SURYAROSNI,Surya Roshni Ltd,4090,202603
+VRLLOG,VRL Logistics Ltd,4088,202603
+CENTUM,Centum Electronics Ltd,4076,202603
+RTNPOWER,RattanIndia Power Ltd,4065,202603
+SHILCTECH,Shilchar Technologies Ltd,4064,202603
+SHARDAMOTR,Sharda Motor Industries Ltd,4057,202603
+MBAPL,Madhya Bharat Agro Products Ltd,4035,202603
+KSCL,Kaveri Seed Company Ltd,4019,202603
+TVSSCS,TVS Supply Chain Solutions Ltd,4017,202603
+SWARAJENG,Swaraj Engines Ltd,4016,202603
+EBGNG,GNG Electronics Ltd,4015,202603
+AURIONPRO,Aurionpro Solutions Ltd,4006,202603
+SUNTECK,Sunteck Realty Ltd,3999,202603
+SIS,SIS Ltd,3958,202603
+HAWKINCOOK,Hawkins Cookers Ltd,3944,202603
+INNOVACAP,Innova Captab Ltd,3934,202603
+BAJAJELEC,Bajaj Electricals Ltd,3926,202603
+BAJAJHIND,Bajaj Hindusthan Sugar Ltd,3917,202603
+GHCL,GHCL Ltd,3888,202603
+PURVA,Puravankara Ltd,3876,202603
+GREENPANEL,Greenpanel Industries Ltd,3858,202403
+CAPILLARY,Capillary Technologies India Ltd,3796,202603
+JSFB,Jana Small Finance Bank Ltd,3788,202603
+VMART,V-Mart Retail Ltd,3777,202603
+DATAMATICS,Datamatics Global Services Ltd,3762,202603
+SKIPPER,Skipper Ltd,3761,202603
+TANFACIND,Tanfac Industries Ltd,3738,202603
+SPARC,Sun Pharma Advanced Research Company Ltd,3719,202603
+PDSL,PDS Ltd,3689,202603
+ZOTA,Zota Health Care Ltd,3688,202603
+STYLAMIND,Stylam Industries Ltd,3661,202603
+,City Pulse Multiventures Ltd,3652,202603
+IFBIND,IFB Industries Ltd,3624,202603
+TATAELXSI,Tata Elxsi Ltd,3606,201503
+NIITMTS,NIIT Learning Systems Ltd,3604,202603
+KMEW,Knowledge Marine & Engineering Works Ltd,3604,202603
+JTEKTINDIA,JTEKT India Ltd,3602,202309
+HCC,Hindustan Construction Company Ltd,3597,202603
+UNIMECH,Unimech Aerospace and Manufacturing Ltd,3594,202603
+RAIN,Rain Industries Ltd,3591,202603
+SEAMECLTD,SEAMEC Ltd,3583,202603
+GMMPFAUDLR,GMM Pfaudler Ltd,3568,202603
+,ASM Technologies Ltd,3546,202603
+RTNINDIA,RattanIndia Enterprises Ltd,3543,202603
+BANSALWIRE,Bansal Wire Industries Ltd,3529,202603
+SMSPHARMA,SMS Pharmaceuticals Ltd,3509,202603
+SUVEN,Suven Life Sciences Ltd,3504,202603
+AGIIL,AGI Infra Ltd,3500,202603
+SUNFLAG,Sunflag Iron & Steel Company Ltd,3495,202603
+FOSECOIND,Foseco India Ltd,3494,202603
+EPIGRAL,Epigral Ltd,3493,202603
+SENORES,Senores Pharmaceuticals Ltd,3490,202603
+SWSOLAR,Sterling & Wilson Renewable Energy Ltd,3478,202603
+STYL,Seshaasai Technologies Ltd,3460,202603
+TECHNVISN,TechNVision Ventures Ltd,3448,202603
+TRUALT,TruAlt Bioenergy Ltd,3440,202603
+INDRAMEDCO,Indraprastha Medical Corporation Ltd,3407,202603
+VSTIND,VST Industries Ltd,3397,202603
+MOIL,MOIL Ltd,3396,202012
+INDIGOPNTS,Indigo Paints Ltd,3394,202603
+EMIL,Electronics Mart India Ltd,3392,202603
+,Colab Platforms Ltd,3390,202603
+RESPONIND,Responsive Industries Ltd,3378,202603
+WPIL,WPIL Ltd,3378,202603
+AVANTEL,Avantel Ltd,3360,202603
+,Intelligent Supply Chain Infrastructure Trust,3353,202409
+RBA,Restaurant Brands Asia Ltd,3341,202603
+NORTHARC,Northern Arc Capital Ltd,3339,202603
+DBCORP,D B Corp Ltd,3325,202603
+ORIENTELEC,Orient Electric Ltd,3324,202603
+OSWALPUMPS,Oswal Pumps Ltd,3306,202603
+SHANTIGEAR,Shanthi Gears Ltd,3304,202603
+MAHLOG,Mahindra Logistics Ltd,3292,202603
+TARC,TARC Ltd,3292,202603
+VISHNU,Vishnu Chemicals Ltd,3284,202603
+GOODLUCK,Goodluck India Ltd,3273,202603
+ARTEMISMED,Artemis Medicare Services Ltd,3249,202603
+,Kesar India Ltd,3243,202603
+JKIL,J Kumar Infraprojects Ltd,3225,202603
+SINDHUTRAD,Sindhu Trade Links Ltd,3212,202603
+ANUP,The Anup Engineering Ltd,3207,202603
+TEXRAIL,Texmaco Rail & Engineering Ltd,3206,202603
+DALMIASUG,Dalmia Bharat Sugar & Industries Ltd,3198,202603
+ANZEN,Anzen India Energy Yield Plus Trust,3196,202603
+SHOPERSTOP,Shoppers Stop Ltd,3190,202603
+KNRCON,KNR Constructions Ltd,3186,202603
+HEMIPROP,Hemisphere Properties India Ltd,3183,202603
+ITDC,India Tourism Development Corporation Ltd,3178,202603
+MANINFRA,Man Infraconstruction Ltd,3177,202603
+NFL,National Fertilizer Ltd,3170,202603
+BALAMINES,Balaji Amines Ltd,3166,202603
+GRMOVER,GRM Overseas Ltd,3162,202603
+AEROFLEX,Aeroflex Industries Ltd,3156,202603
+STYRENIX,Styrenix Performance Materials Ltd,3149,202603
+INDOTHAI,Indo Thai Securities Ltd,3147,202603
+GOPAL,Gopal Snacks Ltd,3141,202603
+HEIDELBERG,HeidelbergCement India Ltd,3107,202603
+POCL,Pondy Oxides & Chemicals Ltd,3091,202603
+CRIZAC,Crizac Ltd,3077,202603
+PAISALO,Paisalo Digital Ltd,3070,202603
+WONDERLA,Wonderla Holidays Ltd,3067,202603
+INDOSTAR,Indostar Capital Finance Ltd,3064,202603
+EMUDHRA,eMudhra Ltd,3064,202603
+RPGLIFE,RPG Life Sciences Ltd,3060,202603
+PACEDIGITK,Pace Digitek Ltd,3040,202603
+SANATHAN,Sanathan Textiles Ltd,3040,202603
+AGI,AGI Greenpac Ltd,3031,202603
+GOLDIAM,Goldiam International Ltd,3029,202603
+OMNI,Omnitech Engineering Ltd,3025,202603
+ROLEXRINGS,Rolex Rings Ltd,3022,202603
+ORISSAMINE,Orissa Minerals Development Company Ltd,3001,202512

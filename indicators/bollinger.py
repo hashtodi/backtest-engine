@@ -37,7 +37,7 @@ class BollingerBands(Indicator):
         middle = close.rolling(window=self.period).mean()
 
         # Standard deviation over the same window
-        rolling_std = close.rolling(window=self.period).std()
+        rolling_std = close.rolling(window=self.period).std(ddof=0)
 
         # Upper and lower bands
         upper = middle + (self.std_dev * rolling_std)

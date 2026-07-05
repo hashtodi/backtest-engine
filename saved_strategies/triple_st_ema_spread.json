@@ -1,0 +1,41 @@
+{
+  "name": "triple_st_ema_spread",
+  "strategy_type": "triple_st_ema_spread",
+  "instruments": ["NIFTY"],
+  "expiry": {
+    "expiry_type": "WEEK",
+    "expiry_roll": true
+  },
+  "signal": {
+    "st_factor": 3.0,
+    "st_atr_period": 12,
+    "htf_mode": "anchored",
+    "tf1_min": 3,
+    "tf2_min": 5,
+    "tf3_min": 10,
+    "ema_fast": 9,
+    "ema_slow": 21,
+    "warmup_days": 10
+  },
+  "entry": {
+    "window_start": "09:30",
+    "window_end": "14:45"
+  },
+  "structure": {
+    "sell_offset_abs": 2,
+    "buy_offset_abs": 6,
+    "lots": 1,
+    "max_trades_per_day": 0,
+    "strike_step": 50
+  },
+  "exit": {
+    "tp_inr": 800.0,
+    "sl_inr": 650.0,
+    "square_off_time": "15:15"
+  },
+  "sizing": {
+    "reference_capital": 200000
+  },
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2026-05-15"
+}

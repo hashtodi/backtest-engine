@@ -1,0 +1,33 @@
+{
+  "name": "oi_wall",
+  "strategy_type": "oi_wall",
+  "instruments": ["NIFTY"],
+  "expiry": {
+    "expiry_type": "WEEK",
+    "expiry_code": 1
+  },
+  "entry": {
+    "wall_pick_time": "10:00",
+    "entry_time": "10:15",
+    "min_conditions_to_enter": 2,
+    "otm_offset_range": [1, 10]
+  },
+  "structure": {
+    "sell_offset_abs": 2,
+    "buy_offset_abs": 6,
+    "lots": 4
+  },
+  "exit": {
+    "force_exit_time": "15:00",
+    "tp_inr": 1200,
+    "sl_inr": 2000,
+    "trail_arm_inr": 800,
+    "trail_lock_inr": 200,
+    "wall_breach_enabled": false
+  },
+  "sizing": {
+    "reference_capital": 200000
+  },
+  "backtest_start": "2025-01-01",
+  "backtest_end": "2026-05-15"
+}
